@@ -1,0 +1,73 @@
+
+
+#include <math.h>
+
+//process program's arguments
+void process_args(int argc, char** argv, char* file_system_name) {
+  if (argc != 2) {
+    perror("Please enter one and only one argument.\n");
+    exit(1);
+  }
+  else {
+    file_system_name = malloc(strlen(argv[1]) + 1);
+    file_system_name = argv[1];
+  }
+}
+
+int main(int argc, char **argv) {
+
+  char* file_system_name;
+  
+  process_args(argc, argv, file_system_name);
+
+  int fs_des;
+
+  if ((fs_des = open(file_system_name, O_RDONLY)) == -1) {
+    perror("file system does not exist.\n");
+    exit(1);
+  }
+
+  int summary_output = creat("summary.csv", S_IRWXU);
+
+  /*Superblock summary*/
+  struct ext2_super_block super_block;
+
+  pread(fs_des, &super_block, sizeof(struct ext2_super_block), SUPER_BLOCK_OFFSET);
+  int total_num_of_inodes = super_block.s_inodes_count;
+  int total_num_of_blocks = super_block.s_blocks_count;
+  int block_size = EXT2_MIN_BLOCK_SIZE << super_block.s_log_block_size;
+  int inode_size = super_block.s_inode_size;
+  int blocks_per_group = super_block.s_blocks_per_group;
+  int inodes_per_group = super_block.s_inodes_per_group;
+  int first_unreserved_i = super_block.s_first_ino;
+  dprintf(fs_des, "SUPERBLOCK,%d,%d,%d,%d,%d,%d,%d", total_num_of_inodes, total_num_of_blocks, block_size, inode_size, blocks_per_group, inodes_per_group, first_unreserved_i);
+
+
+  /*Group summary*/
+  int group_size = total_num_of_blocks/blocks_per_group;
+  int last_group_blocks = total_num_of_blocks%blocks_per_group;
+  int last_group_inodes = total_num_of_inodes%inodes_per_group;
+  
+  struct ext2_group_desc group_d;
+  group_d = malloc(struct ext2_group_desc);
+  int group_offset = SUPER_BLOCK_OFFSET + sizeof(ext2_super_block);
+  int group_num = -1;
+  int total_num_of_blocks_in_group = -1;
+  int total_num_of_inodes_in_group = -1;
+  int free_blocks_in_group = -1;
+  int free_inodes_in_group = -1;
+  int block_bitmap_in_group = -1;
+  int inodes_bitmap_in_group = -1;
+  int first_inode_in_group = -1;
+  
+  int i = 0;
+  for(; i < group_size; i++) {
+    pread(fs_des, &group_d, group_offset + i*sizeof(struct ext2_group_desc));
+  }
+
+  //for the last remaining group_desc
+  
+  
+  	
+  return 0;
+}
