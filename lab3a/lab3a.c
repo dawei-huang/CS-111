@@ -80,7 +80,11 @@ int main(int argc, char **argv) {
   block_bitmap_in_group = group_d[i].bg_block_bitmap;
   inodes_bitmap_in_group = group_d[i].bg_inode_bitmap;
   first_inode_in_group = group_d[i].bg_inode_table;
+<<<<<<< HEAD
   dprintf(summary_output, "GROUP,%d,%d,%d,%d,%d,%d,%d,%d\n", group_num, total_num_of_blocks_in_group, total_num_of_inodes_in_group, free_blocks_in_group, free_inodes_in_group, block_bitmap_in_group, inodes_bitmap_in_group, first_inode_in_group);
+=======
+  dprintf(fs_des, "GROUP,%d,%d,%d,%d,%d,%d,%d", group_num, total_num_of_blocks_in_group, total_num_of_inodes_in_group, free_blocks_in_group, free_inodes_in_group, block_bitmap_in_group, inodes_bitmap_in_group, first_inode_in_group);
+>>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
 
   /*Free block entries*/  
   
@@ -93,11 +97,16 @@ int main(int argc, char **argv) {
 	
     //char* compare_bitmap = malloc(block_size);
     //bzero(compare_bitmap, block_size);
+<<<<<<< HEAD
     //compare_bitmap[block_size-1] = 1;
+=======
+	//compare_bitmap[block_size-1] = 1;
+>>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
 	
     //for each block
     int j = 0;
     for(; j < block_size; j++) {
+<<<<<<< HEAD
       //if (*(bitmap_buffer) & *(compare_bitmap)) {
       //dprintf(;
 			
@@ -111,6 +120,21 @@ int main(int argc, char **argv) {
 	}
 	bitmap_cmp = bitmap_cmp << 1;
       }
+=======
+		//if (*(bitmap_buffer) & *(compare_bitmap)) {
+			//dprintf(;
+			
+		//for each bit
+		int k = 0;
+		int bitmap_cmp = 1;
+		for (; k < 8; k++) {
+			if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
+				///
+				dprintf (fs_des, "BFREE,%d\n", (i*blocks_per_group) + (j*8) + k + 1);
+			}
+			bitmap_cmp = bitmap_cmp << 1;
+		}
+>>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
     }    
   }
 
@@ -122,11 +146,16 @@ int main(int argc, char **argv) {
 	
     //char* compare_bitmap = malloc(block_size);
     //bzero(compare_bitmap, block_size);
+<<<<<<< HEAD
     //compare_bitmap[block_size-1] = 1;
+=======
+	//compare_bitmap[block_size-1] = 1;
+>>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
 	
     //for each inodes
     int j = 0;
     for(; j < block_size; j++) {
+<<<<<<< HEAD
       //if (*(bitmap_buffer) & *(compare_bitmap)) {
       //dprintf(;
 			
@@ -140,6 +169,21 @@ int main(int argc, char **argv) {
 	}
 	bitmap_cmp = bitmap_cmp << 1;
       }
+=======
+		//if (*(bitmap_buffer) & *(compare_bitmap)) {
+			//dprintf(;
+			
+		//for each bit
+		int k = 0;
+		int bitmap_cmp = 1;
+		for (; k < 8; k++) {
+			if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
+				///
+				dprintf (fs_des, "BFREE,%d\n", (i*inodes_per_group) + (j*8) + k + 1);
+			}
+			bitmap_cmp = bitmap_cmp << 1;
+		}
+>>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
     }    
   }
   

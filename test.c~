@@ -1,6 +1,0 @@
-
-#include "ext2_fs.h"
-
-int main() {
-  fprintf(stderr, "size of: %d\n", )
-}
