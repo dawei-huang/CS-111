@@ -196,9 +196,6 @@ void printFreeBlockEntries()
 
 int main(int argc, char** argv)
 {
-
-  char* file_system_name;
-
   if (argc != 2) {
     fprintf(stderr, "Please enter one and only one argument.\n");
     exit(1);
@@ -211,7 +208,7 @@ int main(int argc, char** argv)
   }
 
   printSuperblocks();
-  printGroups();
+  // printGroups();
   /*
   printFreeBlockEntries();
   printFreeInodeEntries();
