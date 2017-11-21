@@ -1,195 +1,197 @@
-
+#include <fcntl.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
-#include <fcntl.h>
+
 #include "ext2_fs.h"
-#include <math.h>
 
-int main(int argc, char **argv) {
+int blocks_count;
+int blocks_per_group;
+int inodes_per_group;
 
+//process program's arguments
+void process_args(int argc, char** argv, char* file_system_name)
+{
   if (argc != 2) {
     perror("Please enter one and only one argument.\n");
     exit(1);
+  } else {
+    file_system_name = malloc(strlen(argv[1]) + 1);
+    file_system_name = argv[1];
   }
+}
+
+void printSuperblocks()
+{
+  struct ext2_super_block superblock;
+
+  pread(fileSystem, &superblock, sizeof(struct ext2_super_block), 1024);
+
+  // Make these global variables because we'll need them in other functions
+  blocks_count = superblock.s_blocks_count;
+  blocks_per_group = superblock.s_blocks_per_group;
+  inodes_per_group = superblock.s_inodes_per_group;
+
+  /*
+  1. SUPERBLOCK
+  2. total number of blocks (decimal) (s_blocks_count)
+  3. total number of i-nodes (decimal) (s_inodes_count)
+  4. block size (in bytes, decimal) (EXT2_MIN_BLOCK_SIZE << s_log_block_size)
+  5. i-node size (in bytes, decimal) (s_inode_size)
+  6. blocks per group (decimal) (s_blocks_per_group)
+  7. i-nodes per group (decimal) (s_inodes_per_group)
+  8. first non-reserved i-node (decimal) (s_first_ino)
+  */
+  printf("SUPERBLOCK,%u,%u,%u,%u,%u,%u,%u\n",
+      blocks_count,
+      superblock.s_inodes_count,
+      EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size,
+      superblock.s_inode_size,
+      blocks_per_group,
+      superblock.s_inodes_per_group,
+      superblock.s_first_ino);
+}
+
+void printGroups()
+{
+  /* Group summary */
+  int numberOfGroups = blocks_count / blocks_per_group;
+
+  struct ext2_group_desc* groupDescriptor;
+  groupDescriptor = malloc((struct ext2_group_desc) * (group_size + 1));
+  int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
+
+  for (int i = 0; i < numberOfGroups; i++) {
+    pread(fs_des, &groupDescriptor[i], groupOffset + i * sizeof(struct ext2_group_desc));
+
+    /*
+    1. GROUP
+    2. group number (decimal, starting from zero)
+    3. total number of blocks in this group (decimal)
+    4. total number of i-nodes in this group (decimal)
+    5. number of free blocks (decimal)
+    6. number of free i-nodes (decimal)
+    7. block number of free block bitmap for this group (decimal)
+    8. block number of free i-node bitmap for this group (decimal)
+    9. block number of first block of i-nodes in this group (decimal)
+    */
+    printf("GROUP,%u,%u,%u,%u,%u,%u,%u,%u\n",
+        i,
+        blocks_per_group,
+        inodes_per_group,
+        groupDescriptor[i].bg_free_blocks_count,
+        groupDescriptor[i].bg_free_inodes_count,
+        groupDescriptor[i].bg_block_bitmap,
+        groupDescriptor[i].bg_inode_bitmap,
+        groupDescriptor[i].bg_inode_table);
+  }
+}
+
+void printFreeBlockEntries()
+{
+  for (int i = 0; i < group_size; i++) {
+    char* bitmap_buffer = malloc(block_size);
+    pread(fs_des, bitmap_buffer, block_size, group_d[i].bg_block_bitmap * (block_size));
+
+    //char* compare_bitmap = malloc(block_size);
+    //bzero(compare_bitmap, block_size);
+    //compare_bitmap[block_size-1] = 1;
+
+    //for each block
+    int j = 0;
+    for (; j < block_size; j++) {
+      //if (*(bitmap_buffer) & *(compare_bitmap)) {
+      //dprintf(;
+
+      //for each bit
+      int k = 0;
+      int bitmap_cmp = 1;
+      for (; k < 8; k++) {
+        if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
+          ///
+          dprintf(fs_des, "BFREE,%d\n", (i * blocks_per_group) + (j * 8) + k + 1);
+        }
+        bitmap_cmp = bitmap_cmp << 1;
+      }
+    }
+  }
+}
+
+void printFreeInodeEntries()
+{
+  for (int i = 0; i < group_size; i++) {
+    char* bitmap_buffer = malloc(block_size);
+    pread(fs_des, bitmap_buffer, block_size, group_d[i].bg_inode_bitmap * (block_size));
+
+    //char* compare_bitmap = malloc(block_size);
+    //bzero(compare_bitmap, block_size);
+    //compare_bitmap[block_size-1] = 1;
+
+    //for each inodes
+    int j = 0;
+    for (; j < block_size; j++) {
+      //if (*(bitmap_buffer) & *(compare_bitmap)) {
+      //dprintf(;
+
+      //for each bit
+      int k = 0;
+      int bitmap_cmp = 1;
+      for (; k < 8; k++) {
+        if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
+          ///
+          dprintf(fs_des, "BFREE,%d\n", (i * inodes_per_group) + (j * 8) + k + 1);
+        }
+        bitmap_cmp = bitmap_cmp << 1;
+      }
+    }
+  }
+
+  /*Inode summary*/
+  int inode_offset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block) + group_size * sizeof(struct ext2_group_desc);
+}
+
+void printInodes()
+{
+}
+
+void printDirectoryEntries()
+{
+}
+
+void printIndirectBlockReferences()
+{
+  /*
+  1. INDIRECT
+  2. I-node number of the owning file (decimal)
+  3. (decimal) level of indirection for the block being scanned ... 1 single   indirect, 2 double indirect, 3 triple
+  4. logical block offset (decimal) represented by the referenced block. If the referenced block is a data block, this is the logical block offset of that block within the file. If the referenced block is a single- or double-indirect  block, this is the same as the logical offset of the first data block to which it refers.
+  5. block number of the (1,2,3) indirect block being scanned (decimal) ... not the highest level block (in the recursive scan), but the lower level block that contains the block reference reported by this entry.
+  6. block number of the referenced block (decimal)
+  */
+}
+
+int main(int argc, char** argv)
+{
+
+  char* file_system_name;
+
+  process_args(argc, argv, file_system_name);
 
   int fs_des;
 
-  if ((fs_des = open(argv[1], O_RDONLY)) == -1) {
+  if ((fs_des = open(file_system_name, O_RDONLY)) == -1) {
     perror("file system does not exist.\n");
     exit(1);
   }
 
-  int summary_output = creat("summary.csv", S_IRWXU);
+  printSuperblocks();
+  printGroups();
+  printFreeBlockEntries();
+  printFreeInodeEntries();
+  printInodes();
+  printDirectoryEntries();
+  printIndirectBlockReferences();
 
-  /*Superblock summary*/
-  struct ext2_super_block super_block;
-  const int SUPER_BLOCK_OFFSET = 1024;
-  pread(fs_des, &super_block, sizeof(struct ext2_super_block), SUPER_BLOCK_OFFSET);
-  int total_num_of_inodes = super_block.s_inodes_count;
-  int total_num_of_blocks = super_block.s_blocks_count;
-  int block_size = EXT2_MIN_BLOCK_SIZE << super_block.s_log_block_size;
-  int inode_size = super_block.s_inode_size;
-  int blocks_per_group = super_block.s_blocks_per_group;
-  int inodes_per_group = super_block.s_inodes_per_group;
-  int first_unreserved_i = super_block.s_first_ino;
-  dprintf(summary_output, "SUPERBLOCK,%d,%d,%d,%d,%d,%d,%d\n", total_num_of_inodes, total_num_of_blocks, block_size, inode_size, blocks_per_group, inodes_per_group, first_unreserved_i);
-
-
-  /*Group summary*/
-  int group_size = total_num_of_blocks/blocks_per_group;
-  int last_group_blocks = total_num_of_blocks%blocks_per_group;
-  int last_group_inodes = total_num_of_inodes%inodes_per_group;
-  
-  struct ext2_group_desc* group_d;
-  group_d = malloc(sizeof(struct ext2_group_desc)*(group_size+1));
-  int group_offset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
-  int group_num = -1;
-  int total_num_of_blocks_in_group = -1;
-  int total_num_of_inodes_in_group = -1;
-  int free_blocks_in_group = -1;
-  int free_inodes_in_group = -1;
-  int block_bitmap_in_group = -1;
-  int inodes_bitmap_in_group = -1;
-  int first_inode_in_group = -1;
-  fprintf(stderr, "group size:%d\n", group_size);
-  int i = 0;
-  for(; i < group_size; i++) {
-    pread(fs_des, &group_d[i], sizeof(struct ext2_group_desc), group_offset + i*sizeof(struct ext2_group_desc));
-    group_num = i;
-    total_num_of_blocks_in_group = blocks_per_group;
-    total_num_of_inodes_in_group = inodes_per_group;
-    free_blocks_in_group = group_d[i].bg_free_blocks_count;
-    free_inodes_in_group = group_d[i].bg_free_inodes_count;
-    block_bitmap_in_group = group_d[i].bg_block_bitmap;
-    inodes_bitmap_in_group = group_d[i].bg_inode_bitmap;
-    first_inode_in_group = group_d[i].bg_inode_table;
-    dprintf(summary_output, "GROUP,%d,%d,%d,%d,%d,%d,%d,%d\n", group_num, total_num_of_blocks_in_group, total_num_of_inodes_in_group, free_blocks_in_group, free_inodes_in_group, block_bitmap_in_group, inodes_bitmap_in_group, first_inode_in_group); 
-  }
-
-  //for the last remaining group_desc
-  pread(fs_des, &group_d[i], sizeof(struct ext2_group_desc), group_offset + i*sizeof(struct ext2_group_desc));
-  group_num = i;
-  total_num_of_blocks_in_group = (last_group_blocks == 0)? blocks_per_group:last_group_blocks;
-  total_num_of_inodes_in_group = (last_group_inodes == 0)? inodes_per_group: last_group_inodes;
-  free_blocks_in_group = group_d[i].bg_free_blocks_count;
-  free_inodes_in_group = group_d[i].bg_free_inodes_count;
-  block_bitmap_in_group = group_d[i].bg_block_bitmap;
-  inodes_bitmap_in_group = group_d[i].bg_inode_bitmap;
-  first_inode_in_group = group_d[i].bg_inode_table;
-<<<<<<< HEAD
-  dprintf(summary_output, "GROUP,%d,%d,%d,%d,%d,%d,%d,%d\n", group_num, total_num_of_blocks_in_group, total_num_of_inodes_in_group, free_blocks_in_group, free_inodes_in_group, block_bitmap_in_group, inodes_bitmap_in_group, first_inode_in_group);
-=======
-  dprintf(fs_des, "GROUP,%d,%d,%d,%d,%d,%d,%d", group_num, total_num_of_blocks_in_group, total_num_of_inodes_in_group, free_blocks_in_group, free_inodes_in_group, block_bitmap_in_group, inodes_bitmap_in_group, first_inode_in_group);
->>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
-
-  /*Free block entries*/  
-  
-  //for each group
-  i = 0;
-  perror("foo\n");
-  for(; i < group_size; i++) {
-    char* bitmap_buffer = malloc(block_size);
-    pread(fs_des, bitmap_buffer,block_size, group_d[i].bg_block_bitmap * (block_size));
-	
-    //char* compare_bitmap = malloc(block_size);
-    //bzero(compare_bitmap, block_size);
-<<<<<<< HEAD
-    //compare_bitmap[block_size-1] = 1;
-=======
-	//compare_bitmap[block_size-1] = 1;
->>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
-	
-    //for each block
-    int j = 0;
-    for(; j < block_size; j++) {
-<<<<<<< HEAD
-      //if (*(bitmap_buffer) & *(compare_bitmap)) {
-      //dprintf(;
-			
-      //for each bit
-      int k = 0;
-      int bitmap_cmp = 1;
-      for (; k < 8; k++) {
-	if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
-	  ///
-	  dprintf (summary_output, "BFREE,%d\n", (i*blocks_per_group) + (j*8) + k + 1);
-	}
-	bitmap_cmp = bitmap_cmp << 1;
-      }
-=======
-		//if (*(bitmap_buffer) & *(compare_bitmap)) {
-			//dprintf(;
-			
-		//for each bit
-		int k = 0;
-		int bitmap_cmp = 1;
-		for (; k < 8; k++) {
-			if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
-				///
-				dprintf (fs_des, "BFREE,%d\n", (i*blocks_per_group) + (j*8) + k + 1);
-			}
-			bitmap_cmp = bitmap_cmp << 1;
-		}
->>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
-    }    
-  }
-
-  /*I-node entries*/
-  i = 0;
-  for(; i < group_size; i++) {
-    char* bitmap_buffer = malloc(block_size);
-    pread(fs_des, bitmap_buffer,block_size, group_d[i].bg_inode_bitmap * (block_size));
-	
-    //char* compare_bitmap = malloc(block_size);
-    //bzero(compare_bitmap, block_size);
-<<<<<<< HEAD
-    //compare_bitmap[block_size-1] = 1;
-=======
-	//compare_bitmap[block_size-1] = 1;
->>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
-	
-    //for each inodes
-    int j = 0;
-    for(; j < block_size; j++) {
-<<<<<<< HEAD
-      //if (*(bitmap_buffer) & *(compare_bitmap)) {
-      //dprintf(;
-			
-      //for each bit
-      int k = 0;
-      int bitmap_cmp = 1;
-      for (; k < 8; k++) {
-	if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
-	  ///
-	  dprintf (summary_output, "BFREE,%d\n", (i*inodes_per_group) + (j*8) + k + 1);
-	}
-	bitmap_cmp = bitmap_cmp << 1;
-      }
-=======
-		//if (*(bitmap_buffer) & *(compare_bitmap)) {
-			//dprintf(;
-			
-		//for each bit
-		int k = 0;
-		int bitmap_cmp = 1;
-		for (; k < 8; k++) {
-			if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
-				///
-				dprintf (fs_des, "BFREE,%d\n", (i*inodes_per_group) + (j*8) + k + 1);
-			}
-			bitmap_cmp = bitmap_cmp << 1;
-		}
->>>>>>> d2b2f05c277a5c83b6ae82b6fe9965f3e63ac82d
-    }    
-  }
-  
-  /*Inode summary*/
-  int inode_offset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block) + group_size*sizeof(struct ext2_group_desc);
-  
-  
   return 0;
 }
