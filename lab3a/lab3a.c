@@ -18,7 +18,6 @@ int blockSize;
 int inodeCount;
 int inodeSize;
 
-
 struct ext2_group_desc* groupDescriptor;
 
 void printSuperblocks()
@@ -35,7 +34,7 @@ void printSuperblocks()
   inodesPerGroup = superblock.s_inodes_per_group;
   blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
   inodeSize = superblock.s_inode_size;
-  
+
   /*
   1. SUPERBLOCK
   2. total number of blocks (decimal) (s_blocks_count)
@@ -122,7 +121,6 @@ void printFreeBlockEntries()
       }
     }
   }
-
 }
 
 void printFreeInodeEntries()
@@ -133,18 +131,18 @@ void printFreeInodeEntries()
 
     __u32 bitmap = groupDescriptor[i].bg_inode_bitmap;
     char buffer;
-    
+
     //for each bits in bitmap
     for (int j = 0; j < inodeSize; j++) {
-      pread(fileSystemDescriptor, &buffer, 1, bitmap*blockSize + j);
+      pread(fileSystemDescriptor, &buffer, 1, bitmap * blockSize + j);
 
       char compare = 1;
       for (int k = 0; k < 8; k++) {
-	if ((buffer & compare) == 0) {
-	  printf("IFREE,%d\n", (i*inodesPerGroup) + (j*8) + k + 1);
-	}
+        if ((buffer & compare) == 0) {
+          printf("IFREE,%d\n", (i * inodesPerGroup) + (j * 8) + k + 1);
+        }
 
-	compare = compare << 1;
+        compare = compare << 1;
       }
     }
   }
@@ -152,7 +150,7 @@ void printFreeInodeEntries()
 
 void formatInodeTime(__u32 time, char* timeString)
 {
-  struct tm GMTTime = *gmtime(&time);
+  struct tm GMTTime = *gmtime(&(const time_t)time);
   strftime(timeString, 80, "%m/%d/%y %H:%M:%S", &GMTTime);
 }
 
@@ -296,7 +294,7 @@ int main(int argc, char** argv)
 
   printSuperblocks();
   printGroups();
-  
+
   printFreeBlockEntries();
   printFreeInodeEntries();
   /*printInodes();
