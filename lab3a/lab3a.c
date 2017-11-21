@@ -14,6 +14,8 @@ int blocksPerGroup;
 int inodesPerGroup;
 int numberOfGroups;
 int blockSize;
+int inodeCount;
+int inodeSize;
 
 void printSuperblocks()
 {
@@ -24,10 +26,12 @@ void printSuperblocks()
 
   // Make these global variables because we'll need them in other functions
   blockCount = superblock.s_blocks_count;
+  inodeCount = superblock.s_inodes_count;
   blocksPerGroup = superblock.s_blocks_per_group;
   inodesPerGroup = superblock.s_inodes_per_group;
   blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
-
+  inodeSize = superblock.s_inode_size;
+  
   /*
   1. SUPERBLOCK
   2. total number of blocks (decimal) (s_blocks_count)
@@ -40,11 +44,11 @@ void printSuperblocks()
   */
   printf("SUPERBLOCK,%u,%u,%u,%u,%u,%u,%u\n",
       blockCount,
-      superblock.s_inodes_count,
+      inodeCount,
       blockSize,
-      superblock.s_inode_size,
+      inodeSize,
       blocksPerGroup,
-      superblock.s_inodes_per_group,
+      inodesPerGroup,
       superblock.s_first_ino);
 }
 
@@ -95,7 +99,7 @@ void printFreeBlockEntries()
   int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
 
   //for each groups
-  for (int i = 0; i < numberOfGroups; i++) {
+  for (int i = 0; i <= numberOfGroups; i++) {
     pread(fileSystemDescriptor, &groupDescriptor[i], sizeof(struct ext2_group_desc), groupOffset + i * sizeof(struct ext2_group_desc));
 
     __u32 bitmap = groupDescriptor[i].bg_block_bitmap;
@@ -211,9 +215,9 @@ int main(int argc, char** argv)
 
   printSuperblocks();
   printGroups();
-  /*
+  
   printFreeBlockEntries();
-  printFreeInodeEntries();
+  /*printFreeInodeEntries();
   printInodes();
   printDirectoryEntries();
   printIndirectBlockReferences();
