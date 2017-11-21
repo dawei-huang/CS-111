@@ -6,8 +6,9 @@
 
 #include "ext2_fs.h"
 
-int fileSystemDescriptor;
+const int SUPER_BLOCK_OFFSET = 1024;
 
+int fileSystemDescriptor;
 int blockCount;
 int blocksPerGroup;
 int inodesPerGroup;
@@ -19,7 +20,7 @@ void printSuperblocks()
   struct ext2_super_block superblock;
 
   // Superblock is always located at byte offset 1024
-  pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), 1024);
+  pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), SUPER_BLOCK_OFFSET);
 
   // Make these global variables because we'll need them in other functions
   blockCount = superblock.s_blocks_count;
@@ -47,40 +48,40 @@ void printSuperblocks()
       superblock.s_first_ino);
 }
 
-// void printGroups()
-// {
-//   /* Group summary */
-//   numberOfGroups = blockCount / blocksPerGroup;
+void printGroups()
+{
+  /* Group summary */
+  numberOfGroups = blockCount / blocksPerGroup;
 
-//   struct ext2_group_desc* groupDescriptor;
-//   groupDescriptor = malloc((struct ext2_group_desc) * (numberOfGroups + 1));
-//   int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
+  struct ext2_group_desc* groupDescriptor;
+  groupDescriptor = malloc(sizeof(struct ext2_group_desc) * (numberOfGroups + 1));
+  int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
 
-//   for (int i = 0; i < numberOfGroups; i++) {
-//     pread(fileSystemDescriptor, &groupDescriptor[i], groupOffset + i * sizeof(struct ext2_group_desc));
+  for (int i = 0; i <= numberOfGroups; i++) {
+    pread(fileSystemDescriptor, &groupDescriptor[i], sizeof(struct ext2_group_desc), groupOffset + i * sizeof(struct ext2_group_desc));
 
-//     /*
-//     1. GROUP
-//     2. group number (decimal, starting from zero)
-//     3. total number of blocks in this group (decimal)
-//     4. total number of i-nodes in this group (decimal)
-//     5. number of free blocks (decimal)
-//     6. number of free i-nodes (decimal)
-//     7. block number of free block bitmap for this group (decimal)
-//     8. block number of free i-node bitmap for this group (decimal)
-//     9. block number of first block of i-nodes in this group (decimal)
-//     */
-//     printf("GROUP,%u,%u,%u,%u,%u,%u,%u,%u\n",
-//         i,
-//         blocksPerGroup,
-//         inodesPerGroup,
-//         groupDescriptor[i].bg_free_blocks_count,
-//         groupDescriptor[i].bg_free_inodes_count,
-//         groupDescriptor[i].bg_block_bitmap,
-//         groupDescriptor[i].bg_inode_bitmap,
-//         groupDescriptor[i].bg_inode_table);
-//   }
-// }
+    /*
+    1. GROUP
+    2. group number (decimal, starting from zero)
+    3. total number of blocks in this group (decimal)
+    4. total number of i-nodes in this group (decimal)
+    5. number of free blocks (decimal)
+    6. number of free i-nodes (decimal)
+    7. block number of free block bitmap for this group (decimal)
+    8. block number of free i-node bitmap for this group (decimal)
+    9. block number of first block of i-nodes in this group (decimal)
+    */
+    printf("GROUP,%u,%u,%u,%u,%u,%u,%u,%u\n",
+        i,
+        blocksPerGroup,
+        inodesPerGroup,
+        groupDescriptor[i].bg_free_blocks_count,
+        groupDescriptor[i].bg_free_inodes_count,
+        groupDescriptor[i].bg_block_bitmap,
+        groupDescriptor[i].bg_inode_bitmap,
+        groupDescriptor[i].bg_inode_table);
+  }
+}
 
 void printFreeBlockEntries()
 {
@@ -90,19 +91,19 @@ void printFreeBlockEntries()
   */
 
   struct ext2_group_desc* groupDescriptor;
-  groupDescriptor = malloc((struct ext2_group_desc) * (numberOfGroups + 1));
+  groupDescriptor = malloc(sizeof(struct ext2_group_desc) * (numberOfGroups + 1));
   int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
 
   //for each groups
   for (int i = 0; i < numberOfGroups; i++) {
-    pread(fs_des, &groupDescriptor[i], groupOffset + i * sizeof(struct ext2_group_desc));
+    pread(fileSystemDescriptor, &groupDescriptor[i], sizeof(struct ext2_group_desc), groupOffset + i * sizeof(struct ext2_group_desc));
 
     __u32 bitmap = groupDescriptor[i].bg_block_bitmap;
     char buffer;
     
     //for each bits in bitmap
     for (int j = 0; j < blockSize; j++) {
-      pread(fs_des, &buffer, 1, bitmap*blockSize + j);
+      pread(fileSystemDescriptor, &buffer, 1, bitmap*blockSize + j);
 
       char compare = 1;
       for (int k = 0; k < 8; k++) {
@@ -120,7 +121,7 @@ void printFreeBlockEntries()
 // {
 //   for (int i = 0; i < group_size; i++) {
 //     char* bitmap_buffer = malloc(block_size);
-//     pread(fs_des, bitmap_buffer, block_size, group_d[i].bg_inode_bitmap * (block_size));
+//     pread(fileSystemDescriptor, bitmap_buffer, block_size, group_d[i].bg_inode_bitmap * (block_size));
 
 //     //char* compare_bitmap = malloc(block_size);
 //     //bzero(compare_bitmap, block_size);
@@ -141,7 +142,7 @@ void printFreeBlockEntries()
 //           1. IFREE
 //           2. number of the free I-node (decimal)
 //           */
-//           dprintf(fs_des, "BFREE,%d\n", (i * inodesPerGroup) + (j * 8) + k + 1);
+//           dprintf(fileSystemDescriptor, "BFREE,%d\n", (i * inodesPerGroup) + (j * 8) + k + 1);
 //         }
 //         bitmap_cmp = bitmap_cmp << 1;
 //       }
@@ -209,7 +210,7 @@ int main(int argc, char** argv)
   }
 
   printSuperblocks();
-  // printGroups();
+  printGroups();
   /*
   printFreeBlockEntries();
   printFreeInodeEntries();
