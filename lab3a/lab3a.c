@@ -81,25 +81,39 @@ void printGroups()
   }
 }
 
-// void printFreeBlockEntries()
-// {
-//   /*
-//   1. BFREE
-//   2. number of the free block (decimal)
-//   */
+void printFreeBlockEntries()
+{
+  /*
+  1. BFREE
+  2. number of the free block (decimal)
+  */
 
-//   struct ext2_group_desc* groupDescriptor;
-//   groupDescriptor = malloc((struct ext2_group_desc) * (numberOfGroups + 1));
-//   int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
+  struct ext2_group_desc* groupDescriptor;
+  groupDescriptor = malloc((struct ext2_group_desc) * (numberOfGroups + 1));
+  int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
 
-//   for (int i = 0; i < numberOfGroups; i++) {
-//     pread(fs_des, &groupDescriptor[i], groupOffset + i * sizeof(struct ext2_group_desc));
+  //for each groups
+  for (int i = 0; i < numberOfGroups; i++) {
+    pread(fs_des, &groupDescriptor[i], groupOffset + i * sizeof(struct ext2_group_desc));
 
-//     __u32 bitmap = groupDescriptor[i].bg_block_bitmap;
+    __u32 bitmap = groupDescriptor[i].bg_block_bitmap;
+    char buffer;
+    
+    //for each bits in bitmap
+    for (int j = 0; j < blockSize; j++) {
+      pread(fs_des, &buffer, 1, bitmap*blockSize + j);
 
-//     for (int j = 0; j < block)
-//   }
-// }
+      char compare = 1;
+      for (int k = 0; k < 8; k++) {
+	if ((buffer & compare) == 0) {
+	  printf("BFREE,%d\n", (i*blocksPerGroup) + (j*8) + k + 1);
+	}
+
+	compare = compare << 1;
+      }
+    }
+  }
+}
 
 // void printFreeInodeEntries()
 // {
