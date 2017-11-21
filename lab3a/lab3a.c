@@ -18,6 +18,7 @@ void printSuperblocks()
 {
   struct ext2_super_block superblock;
 
+  // Superblock is always located at byte offset 1024
   pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), 1024);
 
   // Make these global variables because we'll need them in other functions
@@ -46,40 +47,40 @@ void printSuperblocks()
       superblock.s_first_ino);
 }
 
-void printGroups()
-{
-  /* Group summary */
-  numberOfGroups = blockCount / blocksPerGroup;
+// void printGroups()
+// {
+//   /* Group summary */
+//   numberOfGroups = blockCount / blocksPerGroup;
 
-  struct ext2_group_desc* groupDescriptor;
-  groupDescriptor = malloc((struct ext2_group_desc) * (numberOfGroups + 1));
-  int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
+//   struct ext2_group_desc* groupDescriptor;
+//   groupDescriptor = malloc((struct ext2_group_desc) * (numberOfGroups + 1));
+//   int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
 
-  for (int i = 0; i < numberOfGroups; i++) {
-    pread(fileSystemDescriptor, &groupDescriptor[i], groupOffset + i * sizeof(struct ext2_group_desc));
+//   for (int i = 0; i < numberOfGroups; i++) {
+//     pread(fileSystemDescriptor, &groupDescriptor[i], groupOffset + i * sizeof(struct ext2_group_desc));
 
-    /*
-    1. GROUP
-    2. group number (decimal, starting from zero)
-    3. total number of blocks in this group (decimal)
-    4. total number of i-nodes in this group (decimal)
-    5. number of free blocks (decimal)
-    6. number of free i-nodes (decimal)
-    7. block number of free block bitmap for this group (decimal)
-    8. block number of free i-node bitmap for this group (decimal)
-    9. block number of first block of i-nodes in this group (decimal)
-    */
-    printf("GROUP,%u,%u,%u,%u,%u,%u,%u,%u\n",
-        i,
-        blocksPerGroup,
-        inodesPerGroup,
-        groupDescriptor[i].bg_free_blocks_count,
-        groupDescriptor[i].bg_free_inodes_count,
-        groupDescriptor[i].bg_block_bitmap,
-        groupDescriptor[i].bg_inode_bitmap,
-        groupDescriptor[i].bg_inode_table);
-  }
-}
+//     /*
+//     1. GROUP
+//     2. group number (decimal, starting from zero)
+//     3. total number of blocks in this group (decimal)
+//     4. total number of i-nodes in this group (decimal)
+//     5. number of free blocks (decimal)
+//     6. number of free i-nodes (decimal)
+//     7. block number of free block bitmap for this group (decimal)
+//     8. block number of free i-node bitmap for this group (decimal)
+//     9. block number of first block of i-nodes in this group (decimal)
+//     */
+//     printf("GROUP,%u,%u,%u,%u,%u,%u,%u,%u\n",
+//         i,
+//         blocksPerGroup,
+//         inodesPerGroup,
+//         groupDescriptor[i].bg_free_blocks_count,
+//         groupDescriptor[i].bg_free_inodes_count,
+//         groupDescriptor[i].bg_block_bitmap,
+//         groupDescriptor[i].bg_inode_bitmap,
+//         groupDescriptor[i].bg_inode_table);
+//   }
+// }
 
 void printFreeBlockEntries()
 {
@@ -201,7 +202,7 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  int fileSystemDescriptor = open(argv[1], O_RDONLY);
+  fileSystemDescriptor = open(argv[1], O_RDONLY);
   if (fileSystemDescriptor == -1) {
     fprintf(stderr, "File system does not exist.\n");
     exit(1);
@@ -217,5 +218,5 @@ int main(int argc, char** argv)
   printIndirectBlockReferences();
   */
 
-  return 0;
+  exit(0);
 }
