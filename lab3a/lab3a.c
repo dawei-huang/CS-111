@@ -188,10 +188,7 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  printf("%s", argv[1]);
-
-  int fileSystemDescriptor
-      = open(argv[1], O_RDONLY);
+  int fileSystemDescriptor = open(argv[1], O_RDONLY);
   if (fileSystemDescriptor == -1) {
     fprintf(stderr, "File system does not exist.\n");
     exit(1);
@@ -207,5 +204,5 @@ int main(int argc, char** argv)
   printIndirectBlockReferences();
   */
 
-  return 0;
+  exit(0);
 }
