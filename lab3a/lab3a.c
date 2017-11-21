@@ -17,6 +17,9 @@ int blockSize;
 int inodeCount;
 int inodeSize;
 
+
+struct ext2_group_desc* groupDescriptor;
+
 void printSuperblocks()
 {
   struct ext2_super_block superblock;
@@ -57,7 +60,6 @@ void printGroups()
   /* Group summary */
   numberOfGroups = blockCount / blocksPerGroup;
 
-  struct ext2_group_desc* groupDescriptor;
   groupDescriptor = malloc(sizeof(struct ext2_group_desc) * (numberOfGroups + 1));
   int groupOffset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block);
 
@@ -119,43 +121,33 @@ void printFreeBlockEntries()
       }
     }
   }
+
 }
 
-// void printFreeInodeEntries()
-// {
-//   for (int i = 0; i < group_size; i++) {
-//     char* bitmap_buffer = malloc(block_size);
-//     pread(fileSystemDescriptor, bitmap_buffer, block_size, group_d[i].bg_inode_bitmap * (block_size));
+void printFreeInodeEntries()
+{
 
-//     //char* compare_bitmap = malloc(block_size);
-//     //bzero(compare_bitmap, block_size);
-//     //compare_bitmap[block_size-1] = 1;
+  //for each groups
+  for (int i = 0; i <= numberOfGroups; i++) {
 
-//     //for each inodes
-//     int j = 0;
-//     for (; j < block_size; j++) {
-//       //if (*(bitmap_buffer) & *(compare_bitmap)) {
-//       //dprintf(;
+    __u32 bitmap = groupDescriptor[i].bg_inode_bitmap;
+    char buffer;
+    
+    //for each bits in bitmap
+    for (int j = 0; j < inodeSize; j++) {
+      pread(fileSystemDescriptor, &buffer, 1, bitmap*blockSize + j);
 
-//       //for each bit
-//       int k = 0;
-//       int bitmap_cmp = 1;
-//       for (; k < 8; k++) {
-//         if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
-//           /*
-//           1. IFREE
-//           2. number of the free I-node (decimal)
-//           */
-//           dprintf(fileSystemDescriptor, "BFREE,%d\n", (i * inodesPerGroup) + (j * 8) + k + 1);
-//         }
-//         bitmap_cmp = bitmap_cmp << 1;
-//       }
-//     }
-//   }
+      char compare = 1;
+      for (int k = 0; k < 8; k++) {
+	if ((buffer & compare) == 0) {
+	  printf("IFREE,%d\n", (i*inodesPerGroup) + (j*8) + k + 1);
+	}
 
-//   /*Inode summary*/
-//   int inode_offset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block) + group_size * sizeof(struct ext2_group_desc);
-// }
+	compare = compare << 1;
+      }
+    }
+  }
+}
 
 // void printInodes()
 // {
@@ -217,8 +209,8 @@ int main(int argc, char** argv)
   printGroups();
   
   printFreeBlockEntries();
-  /*printFreeInodeEntries();
-  printInodes();
+  printFreeInodeEntries();
+  /*printInodes();
   printDirectoryEntries();
   printIndirectBlockReferences();
   */
