@@ -18,6 +18,7 @@ void printSuperblocks()
 {
   struct ext2_super_block superblock;
 
+  // Superblock is always located at byte offset 1024
   pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), 1024);
 
   // Make these global variables because we'll need them in other functions
@@ -187,7 +188,10 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  int fileSystemDescriptor = open(argv[1], O_RDONLY);
+  printf("%s", argv[1]);
+
+  int fileSystemDescriptor
+      = open(argv[1], O_RDONLY);
   if (fileSystemDescriptor == -1) {
     fprintf(stderr, "File system does not exist.\n");
     exit(1);
