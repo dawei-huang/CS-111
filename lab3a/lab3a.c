@@ -11,8 +11,8 @@
 #define EXT2_ISLNK(i_mode) ((i_mode & EXT2_S_IFLNK) == EXT2_S_IFLNK)
 #define EXT2_ISREG(i_mode) ((i_mode & EXT2_S_IFREG) == EXT2_S_IFREG)
 
-const int SUPERBLOCK_OFFSET = 1024;
-const int GROUP_OFFSET = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block);
+#define SUPERBLOCK_OFFSET 1024
+#define GROUP_OFFSET SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block)
 
 int fileSystemDescriptor;
 struct ext2_group_desc* groupDescriptor;
