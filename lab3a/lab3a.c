@@ -25,7 +25,7 @@ void printSuperblocks()
   blockCount = superblock.s_blocks_count;
   blocksPerGroup = superblock.s_blocks_per_group;
   inodesPerGroup = superblock.s_inodes_per_group;
-  blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
+  blockSize = superblock.s_log_block_size;
 
   /*
   1. SUPERBLOCK
