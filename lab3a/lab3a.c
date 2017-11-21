@@ -90,6 +90,7 @@ void printGroups()
 
 void printFreeBlockEntries()
 {
+
   for (int i = 0; i < group_size; i++) {
     char* bitmap_buffer = malloc(block_size);
     pread(fs_des, bitmap_buffer, block_size, group_d[i].bg_block_bitmap * (block_size));
@@ -109,7 +110,10 @@ void printFreeBlockEntries()
       int bitmap_cmp = 1;
       for (; k < 8; k++) {
         if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
-          ///
+          /*
+          1. BFREE
+          2. number of the free block (decimal)
+          */
           dprintf(fs_des, "BFREE,%d\n", (i * blocks_per_group) + (j * 8) + k + 1);
         }
         bitmap_cmp = bitmap_cmp << 1;
@@ -139,7 +143,10 @@ void printFreeInodeEntries()
       int bitmap_cmp = 1;
       for (; k < 8; k++) {
         if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
-          ///
+          /*
+          1. IFREE
+          2. number of the free I-node (decimal)
+          */
           dprintf(fs_des, "BFREE,%d\n", (i * inodes_per_group) + (j * 8) + k + 1);
         }
         bitmap_cmp = bitmap_cmp << 1;
@@ -153,10 +160,33 @@ void printFreeInodeEntries()
 
 void printInodes()
 {
+  /*
+  1. INODE
+  2. inode number (decimal)
+  3. file type ('f' for file, 'd' for directory, 's' for symbolic link, '?" for anything else)
+  4. mode (low order 12-bits, octal ... suggested format "0%o")
+  5. owner (decimal)
+  6. group (decimal)
+  7. link count (decimal)
+  8. time of last I-node change (mm/dd/yy hh:mm:ss, GMT)
+  9. modification time (mm/dd/yy hh:mm:ss, GMT)
+  10. time of last access (mm/dd/yy hh:mm:ss, GMT)
+  11. file size (decimal)
+  12. number of blocks (decimal)
+  */
 }
 
 void printDirectoryEntries()
 {
+  /*
+  1. DIRENT
+  2. parent inode number (decimal) ... the I-node number of the directory that contains this entry
+  3. logical byte offset (decimal) of this entry within the directory
+  4. inode number of the referenced file (decimal)
+  5. entry length (decimal)
+  6. name length (decimal)
+  7. name (string, surrounded by single-quotes). Don't worry about escaping, we promise there will be no single-quotes or commas in any of the file names.
+  */
 }
 
 void printIndirectBlockReferences()
