@@ -19,13 +19,13 @@ void printSuperblocks()
   struct ext2_super_block superblock;
 
   // Superblock is always located at byte offset 1024
-  pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), 100);
+  pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), 1024);
 
   // Make these global variables because we'll need them in other functions
   blockCount = superblock.s_blocks_count;
   blocksPerGroup = superblock.s_blocks_per_group;
   inodesPerGroup = superblock.s_inodes_per_group;
-  blockSize = superblock.s_log_block_size;
+  blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
 
   /*
   1. SUPERBLOCK
@@ -188,7 +188,7 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  int fileSystemDescriptor = open(argv[1], O_RDONLY);
+  fileSystemDescriptor = open(argv[1], O_RDONLY);
   if (fileSystemDescriptor == -1) {
     fprintf(stderr, "File system does not exist.\n");
     exit(1);
