@@ -19,7 +19,7 @@ void printSuperblocks()
   struct ext2_super_block superblock;
 
   // Superblock is always located at byte offset 1024
-  pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), 1024);
+  pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), 100);
 
   // Make these global variables because we'll need them in other functions
   blockCount = superblock.s_blocks_count;
