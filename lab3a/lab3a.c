@@ -86,22 +86,69 @@ int main(int argc, char **argv) {
   first_inode_in_group = group_d[i].bg_inode_table;
   dprintf(fs_des, "GROUP,%d,%d,%d,%d,%d,%d,%d", group_num, total_num_of_blocks_in_group, total_num_of_inodes_in_group, free_blocks_in_group, free_inodes_in_group, block_bitmap_in_group, inodes_bitmap_in_group, first_inode_in_group);
 
-  /*Free block entries*/
-
+  /*Free block entries*/  
+  
   //for each group
   i = 0;
   for(; i < group_size; i++) {
-    //for each block
-    void* bitmap_buffer = malloc(block_size);
+    char* bitmap_buffer = malloc(block_size);
     pread(fs_des, bitmap_buffer,block_size, group_d[i].bg_block_bitmap * (block_size));
-    
+	
+    //char* compare_bitmap = malloc(block_size);
+    //bzero(compare_bitmap, block_size);
+	//compare_bitmap[block_size-1] = 1;
+	
+    //for each block
     int j = 0;
     for(; j < block_size; j++) {
-      
-    }
-    
+		//if (*(bitmap_buffer) & *(compare_bitmap)) {
+			//dprintf(;
+			
+		//for each bit
+		int k = 0;
+		int bitmap_cmp = 1;
+		for (; k < 8; k++) {
+			if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
+				///
+				dprintf (fs_des, "BFREE,%d\n", (i*blocks_per_group) + (j*8) + k + 1);
+			}
+			bitmap_cmp = bitmap_cmp << 1;
+		}
+    }    
   }
 
+  /*I-node entries*/
+  i = 0;
+  for(; i < group_size; i++) {
+    char* bitmap_buffer = malloc(block_size);
+    pread(fs_des, bitmap_buffer,block_size, group_d[i].bg_inode_bitmap * (block_size));
+	
+    //char* compare_bitmap = malloc(block_size);
+    //bzero(compare_bitmap, block_size);
+	//compare_bitmap[block_size-1] = 1;
+	
+    //for each inodes
+    int j = 0;
+    for(; j < block_size; j++) {
+		//if (*(bitmap_buffer) & *(compare_bitmap)) {
+			//dprintf(;
+			
+		//for each bit
+		int k = 0;
+		int bitmap_cmp = 1;
+		for (; k < 8; k++) {
+			if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
+				///
+				dprintf (fs_des, "BFREE,%d\n", (i*inodes_per_group) + (j*8) + k + 1);
+			}
+			bitmap_cmp = bitmap_cmp << 1;
+		}
+    }    
+  }
+  
+  /*Inode summary*/
+  int inode_offset = SUPER_BLOCK_OFFSET + sizeof(struct ext2_super_block) + group_size*sizeof(struct ext2_group_desc);
+  
   
   return 0;
 }
