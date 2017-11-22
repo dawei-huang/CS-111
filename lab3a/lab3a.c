@@ -26,6 +26,7 @@ int blocksPerGroup;
 int inodesPerGroup;
 int numberOfGroups;
 int blockSize;
+int firstInode;
 
 void printSuperblocks()
 {
@@ -39,6 +40,7 @@ void printSuperblocks()
   blocksPerGroup = superblock.s_blocks_per_group;
   inodesPerGroup = superblock.s_inodes_per_group;
   blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
+  firstInode = superblock.s_first_ino;
 
   /*
   1. SUPERBLOCK
@@ -57,7 +59,7 @@ void printSuperblocks()
       superblock.s_inode_size,
       blocksPerGroup,
       superblock.s_inodes_per_group,
-      superblock.s_first_ino);
+      firstInode);
 }
 
 void printGroups()
@@ -203,7 +205,7 @@ void printInodes()
       11. file size (decimal)
       12. number of blocks (decimal)
       */
-      printf("INODE,%d,%c,0%o,%u,%u,%u,%s,%s,%s,%u,%u\n",
+      printf("INODE,%d,%c,0%o,%u,%u,%u,%s,%s,%s,%u,%u",
           inodeNumber,
           fileType,
           mode,
@@ -215,6 +217,15 @@ void printInodes()
           lastAccessTime,
           inode.i_size,
           inode.i_blocks);
+
+      for (int j = 0; j < EXT2_N_BLOCKS;; j++) {
+        printf(",%u", inode.i_block[j]);
+      }
+      printf("\n");
+
+      if (inode_no == 2) {
+        inode_no = firstInode - 1;
+      }
     }
   }
 }
