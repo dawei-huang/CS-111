@@ -224,7 +224,7 @@ void printInodes()
       printf("\n");
 
       if (inodeNumber == 2) {
-        inode_no = firstInode - 1;
+        inodeNumber = firstInode - 1;
       }
     }
   }
