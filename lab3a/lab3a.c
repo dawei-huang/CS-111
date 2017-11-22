@@ -16,9 +16,11 @@
 #define EXT2_ISLNK(i_mode) ((i_mode & EXT2_S_IFLNK) == EXT2_S_IFLNK)
 #define EXT2_ISREG(i_mode) ((i_mode & EXT2_S_IFREG) == EXT2_S_IFREG)
 
-const int SUPERBLOCK_OFFSET = 1024;
+int SUPERBLOCK_OFFSET = 1024;
 int GROUP_OFFSET = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block);
 int INODE_OFFSET;
+
+int numberOfGroups;
 
 int fileSystemDescriptor;
 struct ext2_super_block superblock;
@@ -48,7 +50,7 @@ void printSuperblocks()
       superblock.s_inode_size,
       superblock.s_blocks_per_group,
       superblock.s_inodes_per_group,
-      firstInode);
+      superblock.s_first_ino);
 }
 
 void printGroups()
@@ -162,7 +164,7 @@ void printInodes()
 
     for (int j = 0; j < superblock.s_inodes_per_group; j++) {
       struct ext2_inode inode;
-      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), INODE_OFFSET + (j * sizeof(ext2_inode)));
+      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), INODE_OFFSET + (j * sizeof(struct ext2_inode)));
 
       if (!isAllocatedInode(inode)) {
         continue;
@@ -202,7 +204,7 @@ void printInodes()
       The next fifteen fields are block addresses (decimal, 12 direct, one indirect, one double indirect, one triple indirect).
       */
       printf("INODE,%d,%c,0%o,%u,%u,%u,%s,%s,%s,%u,%u",
-          inodeNumber,
+          j,
           fileType,
           mode,
           inode.i_uid,
