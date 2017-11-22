@@ -61,7 +61,7 @@ void printSuperblocks()
 void printGroups()
 {
   /* Group summary */
-  numberOfGroups = 1 + (super.s_blocks_count - 1) / super.s_blocks_per_group;
+  numberOfGroups = 1 + (superblock.s_blocks_count - 1) / superblock.s_blocks_per_group;
   groupDescriptors = malloc(numberOfGroups * sizeof(struct ext2_group_desc));
 
   for (int i = 0; i < numberOfGroups; i++) {
