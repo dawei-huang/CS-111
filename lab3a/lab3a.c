@@ -91,28 +91,25 @@ void printGroups()
 
 void printFreeBlockEntries()
 {
-  /*
-  1. BFREE
-  2. number of the free block (decimal)
-  */
-  printf("hello %i\n", numberOfGroups);
-
   // For each group
   for (int i = 0; i < numberOfGroups + 1; i++) {
 
     __u32 bitmap = groupDescriptor[i].bg_block_bitmap;
 
-    int compare = 1;
-
     // For each bit in bitmap
     for (int j = 0; j < blockSize; j++) {
 
+      int compare = 1;
       char buffer;
       pread(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
 
       for (int k = 0; k < 8; k++) {
         if ((buffer & compare) == 0) {
-          printf("BFREE,%lu\n", (i * blocksPerGroup) + (j * 8) + k + 1);
+          /*
+          1. BFREE
+          2. number of the free block (decimal)
+          */
+          printf("BFREE,%u\n", (i * blocksPerGroup) + (j * 8) + k + 1);
         }
 
         compare = compare << 1;
