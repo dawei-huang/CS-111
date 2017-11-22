@@ -16,15 +16,16 @@
 #define EXT2_ISLNK(i_mode) ((i_mode & EXT2_S_IFLNK) == EXT2_S_IFLNK)
 #define EXT2_ISREG(i_mode) ((i_mode & EXT2_S_IFREG) == EXT2_S_IFREG)
 
-#define SUPERBLOCK_OFFSET 1024
-int GROUP_OFFSET = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block);
-int INODE_OFFSET;
+// From http://cs.smith.edu/~nhowe/Teaching/csc262/oldlabs/ext2.html
+// Blocks are numbered starting from 1. Block 1 is the superblock of the first group, block 2 contains the group descriptors, and so on. Block 0 is the NULL block and does not correspond to any disk offset.
+#define SUPERBLOCK_OFFSET 1024 // Location of superblock
+#define BLOCK_OFFSET(block) (SUPERBLOCK_OFFSET + (block - 1) * blockSize)
 
 int numberOfGroups;
 
 int fileSystemDescriptor;
 struct ext2_super_block superblock;
-struct ext2_group_desc* groupDescriptor;
+struct ext2_group_desc* groupDescriptors;
 __u32 blockSize;
 
 void printSuperblocks()
@@ -32,6 +33,10 @@ void printSuperblocks()
 
   // Superblock is always located at byte offset 1024
   pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
+
+  // error if superblock.s_magic != EXT2_SUPER_MAGIC
+
+  blockSize = EXT2_MIN_BLOCK_SIZE << s_log_block_size;
 
   /*
   1. SUPERBLOCK
@@ -56,12 +61,11 @@ void printSuperblocks()
 void printGroups()
 {
   /* Group summary */
-  numberOfGroups = superblock.s_blocks_count / superblock.s_blocks_per_group;
+  numberOfGroups = 1 + (super.s_blocks_count - 1) / super.s_blocks_per_group;
+  groupDescriptors = malloc(numberOfGroups * sizeof(struct ext2_group_desc));
 
-  groupDescriptor = malloc(sizeof(struct ext2_group_desc) * (numberOfGroups + 1));
-
-  for (int i = 0; i <= numberOfGroups; i++) {
-    pread(fileSystemDescriptor, &groupDescriptor[i], sizeof(struct ext2_group_desc), GROUP_OFFSET + i * sizeof(struct ext2_group_desc));
+  for (int i = 0; i < numberOfGroups; i++) {
+    pread(fileSystemDescriptor, &groupDescriptors[i], sizeof(struct ext2_group_desc), SUPERBLOCK_OFFSET + blockSize);
 
     /*
     1. GROUP
@@ -78,11 +82,11 @@ void printGroups()
         i,
         superblock.s_blocks_per_group,
         superblock.s_inodes_per_group,
-        groupDescriptor[i].bg_free_blocks_count,
-        groupDescriptor[i].bg_free_inodes_count,
-        groupDescriptor[i].bg_block_bitmap,
-        groupDescriptor[i].bg_inode_bitmap,
-        groupDescriptor[i].bg_inode_table);
+        groupDescriptors[i].bg_free_blocks_count,
+        groupDescriptors[i].bg_free_inodes_count,
+        groupDescriptors[i].bg_block_bitmap,
+        groupDescriptors[i].bg_inode_bitmap,
+        groupDescriptors[i].bg_inode_table);
   }
 }
 
@@ -91,7 +95,7 @@ void printFreeBlockEntries()
   // For each group
   for (int i = 0; i < numberOfGroups + 1; i++) {
 
-    __u32 bitmap = groupDescriptor[i].bg_block_bitmap;
+    __u32 bitmap = groupDescriptors[i].bg_block_bitmap;
 
     // For each bit in bitmap
     for (int j = 0; j < blockSize; j++) {
@@ -117,7 +121,7 @@ void printFreeInodeEntries()
 {
   // For each group
   for (int i = 0; i < numberOfGroups + 1; i++) {
-    __u32 bitmap = groupDescriptor[i].bg_inode_bitmap;
+    __u32 bitmap = groupDescriptors[i].bg_inode_bitmap;
 
     // For each bit in bitmap
     for (int j = 0; j < blockSize; j++) {
@@ -145,7 +149,7 @@ void formatInodeTime(__u32 time, char* timeString)
   struct tm GMTTime = *gmtime(&convertedTime);
   strftime(timeString, 80, "%m/%d/%y %H:%M:%S", &GMTTime);
 }
-
+/*
 bool isAllocatedInode(struct ext2_inode inode)
 {
   if (inode.i_mode != 0 && inode.i_links_count != 0) {
@@ -161,7 +165,7 @@ void printInodes()
 
   for (int i = 0; i < numberOfGroups + 1; i++) {
     printf("i: %i\n", i);
-    __u32 inodeTable = groupDescriptor[i].bg_inode_table;
+    __u32 inodeTable = groupDescriptors[i].bg_inode_table;
 
     printf("inodes per group: %u\n", superblock.s_inodes_per_group);
     for (int j = 0; j < superblock.s_inodes_per_group; j++) {
@@ -205,7 +209,7 @@ void printInodes()
       11. file size (decimal)
       12. number of blocks (decimal)
       The next fifteen fields are block addresses (decimal, 12 direct, one indirect, one double indirect, one triple indirect).
-      */
+      
       printf("INODE,%d,%c,0%o,%u,%u,%u,%s,%s,%s,%u,%u",
           j,
           fileType,
@@ -221,6 +225,7 @@ void printInodes()
     }
   }
 }
+*/
 
 // void printDirectoryEntries()
 // {
@@ -264,7 +269,7 @@ int main(int argc, char** argv)
   printGroups();
   printFreeBlockEntries();
   printFreeInodeEntries();
-  printInodes();
+  // printInodes();
   // printDirectoryEntries();
   // printIndirectBlockReferences();
 
