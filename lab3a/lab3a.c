@@ -223,7 +223,7 @@ void printInodes()
       }
       printf("\n");
 
-      if (inode_no == 2) {
+      if (inodeNumber == 2) {
         inode_no = firstInode - 1;
       }
     }
