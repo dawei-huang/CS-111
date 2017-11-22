@@ -98,7 +98,6 @@ void printFreeBlockEntries()
 
   // For each group
   for (int i = 0; i < numberOfGroups; i++) {
-    pread(fileSystemDescriptor, &groupDescriptor[i], sizeof(struct ext2_group_desc), GROUP_OFFSET + i * sizeof(struct ext2_group_desc));
 
     __u32 bitmap = groupDescriptor[i].bg_block_bitmap;
 
