@@ -7,6 +7,10 @@
 
 #include "ext2_fs.h"
 
+#define EXT2_S_IFDIR 0x4000
+#define EXT2_S_IFLNK 0xA000
+#define EXT2_S_IFREG 0x8000
+
 #define EXT2_ISDIR(i_mode) ((i_mode & EXT2_S_IFDIR) == EXT2_S_IFDIR)
 #define EXT2_ISLNK(i_mode) ((i_mode & EXT2_S_IFLNK) == EXT2_S_IFLNK)
 #define EXT2_ISREG(i_mode) ((i_mode & EXT2_S_IFREG) == EXT2_S_IFREG)
