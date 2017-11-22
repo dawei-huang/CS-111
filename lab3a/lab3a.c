@@ -26,7 +26,7 @@ int blocksPerGroup;
 int inodesPerGroup;
 int numberOfGroups;
 int blockSize;
-int firstInode;
+__u32 firstInode;
 
 void printSuperblocks()
 {
