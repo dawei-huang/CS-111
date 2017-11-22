@@ -93,7 +93,7 @@ void printGroups()
 void printFreeBlockEntries()
 {
   // For each group
-  for (int i = 0; i < numberOfGroups + 1; i++) {
+  for (int i = 0; i < numberOfGroups; i++) {
 
     __u32 bitmap = groupDescriptors[i].bg_block_bitmap;
 
@@ -120,7 +120,7 @@ void printFreeBlockEntries()
 void printFreeInodeEntries()
 {
   // For each group
-  for (int i = 0; i < numberOfGroups + 1; i++) {
+  for (int i = 0; i < numberOfGroups; i++) {
     __u32 bitmap = groupDescriptors[i].bg_inode_bitmap;
 
     // For each bit in bitmap
