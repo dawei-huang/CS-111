@@ -167,6 +167,8 @@ void printInodes()
     struct ext2_inode inode;
 
     for (int inodeNumber = 2; inodeNumber < inodesPerGroup; inodeNumber++) {
+      printf("inodeNumber: %i", inodeNumber);
+
       off_t offset = (SUPERBLOCK_OFFSET + inodeTable) + (inodeNumber - 1) * sizeof(struct ext2_inode);
 
       pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), offset);
