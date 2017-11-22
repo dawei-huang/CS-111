@@ -16,7 +16,7 @@
 #define EXT2_ISREG(i_mode) ((i_mode & EXT2_S_IFREG) == EXT2_S_IFREG)
 
 #define SUPERBLOCK_OFFSET 1024
-#define GROUP_OFFSET SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block)
+#define GROUP_OFFSET 1024 + sizeof(struct ext2_super_block)
 
 int fileSystemDescriptor;
 struct ext2_group_desc* groupDescriptor;
@@ -179,7 +179,7 @@ void printInodes()
         fileType = 'd';
       } else if (EXT2_ISLNK(inode.i_mode)) { // Link
         fileType = 's';
-      } else if (EXT2_ISREG(node.i_mode)) { // Regular File
+      } else if (EXT2_ISREG(inode.i_mode)) { // Regular File
         fileType = 'f';
       }
 
