@@ -166,8 +166,9 @@ void printInodes()
     __u32 inodeTable = groupDescriptor[i].bg_inode_table;
     struct ext2_inode inode;
 
-    for (int inodeNumber = 2; inodeNumber < inodesPerGroup; inodeNumber++) {
-      printf("inodeNumber: %i", inodeNumber);
+    int inodeNumber;
+    for (inodeNumber = 2; inodeNumber < inodesPerGroup; inodeNumber++) {
+      printf("inodeNumber: %i\n", inodeNumber);
 
       off_t offset = (SUPERBLOCK_OFFSET + inodeTable) + (inodeNumber - 1) * sizeof(struct ext2_inode);
 
