@@ -267,7 +267,7 @@ int main(int argc, char** argv)
 
   printSuperblocks();
   printGroups();
-  // printFreeBlockEntries();
+  printFreeBlockEntries();
   // printFreeInodeEntries();
   // printInodes();
   // printDirectoryEntries();
