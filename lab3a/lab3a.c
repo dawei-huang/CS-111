@@ -167,10 +167,9 @@ void printInodes()
     for (int j = 0; j < superblock.s_inodes_per_group; j++) {
       printf("j: %i\n", j);
       struct ext2_inode inode;
-      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), INODE_OFFSET + (j * sizeof(struct ext2_inode)));
+      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET + inodeTable));
 
       if (!isAllocatedInode(inode)) {
-        j++;
         continue;
       }
 
