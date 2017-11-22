@@ -19,28 +19,15 @@
 #define GROUP_OFFSET 1024 + sizeof(struct ext2_super_block)
 
 int fileSystemDescriptor;
+struct ext2_super_block superblock;
 struct ext2_group_desc* groupDescriptor;
-
-int blockCount;
-int blocksPerGroup;
-int inodesPerGroup;
-int numberOfGroups;
-int blockSize;
-__u32 firstInode;
+__u32 blockSize;
 
 void printSuperblocks()
 {
-  struct ext2_super_block superblock;
 
   // Superblock is always located at byte offset 1024
   pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
-
-  // Make these global variables because we'll need them in other functions
-  blockCount = superblock.s_blocks_count;
-  blocksPerGroup = superblock.s_blocks_per_group;
-  inodesPerGroup = superblock.s_inodes_per_group;
-  blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
-  firstInode = superblock.s_first_ino;
 
   /*
   1. SUPERBLOCK
@@ -53,11 +40,11 @@ void printSuperblocks()
   8. first non-reserved i-node (decimal) (s_first_ino)
   */
   printf("SUPERBLOCK,%u,%u,%u,%u,%u,%u,%u\n",
-      blockCount,
+      superblock.s_blocks_count,
       superblock.s_inodes_count,
       blockSize,
       superblock.s_inode_size,
-      blocksPerGroup,
+      superblock.s_blocks_per_group,
       superblock.s_inodes_per_group,
       firstInode);
 }
@@ -65,7 +52,7 @@ void printSuperblocks()
 void printGroups()
 {
   /* Group summary */
-  numberOfGroups = blockCount / blocksPerGroup;
+  numberOfGroups = superblock.s_blocks_count / superblock.s_blocks_per_group;
 
   groupDescriptor = malloc(sizeof(struct ext2_group_desc) * (numberOfGroups + 1));
 
@@ -85,8 +72,8 @@ void printGroups()
     */
     printf("GROUP,%u,%u,%u,%u,%u,%u,%u,%u\n",
         i,
-        blocksPerGroup,
-        inodesPerGroup,
+        superblock.s_blocks_per_group,
+        superblock.s_inodes_per_group,
         groupDescriptor[i].bg_free_blocks_count,
         groupDescriptor[i].bg_free_inodes_count,
         groupDescriptor[i].bg_block_bitmap,
@@ -104,7 +91,6 @@ void printFreeBlockEntries()
 
     // For each bit in bitmap
     for (int j = 0; j < blockSize; j++) {
-
       int compare = 1;
       char buffer;
       pread(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
@@ -115,9 +101,8 @@ void printFreeBlockEntries()
           1. BFREE
           2. number of the free block (decimal)
           */
-          printf("BFREE,%u\n", (i * blocksPerGroup) + (j * 8) + k + 1);
+          printf("BFREE,%u\n", (i * superblock.s_blocks_per_group) + (j * 8) + k + 1);
         }
-
         compare = compare << 1;
       }
     }
@@ -128,12 +113,10 @@ void printFreeInodeEntries()
 {
   // For each group
   for (int i = 0; i < numberOfGroups + 1; i++) {
-
     __u32 bitmap = groupDescriptor[i].bg_inode_bitmap;
 
     // For each bit in bitmap
     for (int j = 0; j < blockSize; j++) {
-
       int compare = 1;
       char buffer;
       pread(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
@@ -144,9 +127,8 @@ void printFreeInodeEntries()
           1. IFREE
           2. number of the free I-node (decimal)
           */
-          printf("IFREE,%u\n", (i * inodesPerGroup) + (j * 8) + k + 1);
+          printf("IFREE,%u\n", (i * superblock.s_inodes_per_group) + (j * 8) + k + 1);
         }
-
         compare = compare << 1;
       }
     }
@@ -164,14 +146,13 @@ void printInodes()
 {
   for (int i = 0; i < numberOfGroups + 1; i++) {
     __u32 inodeTable = groupDescriptor[i].bg_inode_table;
-    struct ext2_inode inode;
 
-    int inodeNumber;
-    for (inodeNumber = 2; inodeNumber < inodesPerGroup; inodeNumber++) {
+    for (int inodeNumber = 0; inodeNumber < superblock.s_inodes_per_group; inodeNumber++) {
       printf("inodeNumber: %i\n", inodeNumber);
 
-      off_t offset = (SUPERBLOCK_OFFSET + inodeTable) + (inodeNumber - 1) * sizeof(struct ext2_inode);
+      off_t offset = ;
 
+      struct ext2_inode inode;
       pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), offset);
 
       // File Type
@@ -225,10 +206,6 @@ void printInodes()
         printf(",%u", inode.i_block[j]);
       }
       printf("\n");
-
-      if (inodeNumber == 2) {
-        inodeNumber = firstInode - 1;
-      }
     }
   }
 }
