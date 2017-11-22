@@ -147,81 +147,77 @@ void printFreeInodeEntries()
   }
 }
 
-//   /*Inode summary*/
-//   int inode_offset = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block) + group_size * sizeof(struct ext2_group_desc);
-// }
+void formatInodeTime(__u32 time, char* timeString)
+{
+  time_t convertedTime = time;
+  struct tm GMTTime = *gmtime(&convertedTime);
+  strftime(timeString, 80, "%m/%d/%y %H:%M:%S", &GMTTime);
+}
 
-// void formatInodeTime(__u32 time, char* timeString)
-// {
-//   time_t convertedTime = time;
-//   struct tm GMTTime = *gmtime(&convertedTime);
-//   strftime(timeString, 80, "%m/%d/%y %H:%M:%S", &GMTTime);
-// }
+void printInodes()
+{
+  struct ext2_group_desc* groupDescriptor;
+  groupDescriptor = malloc(sizeof(struct ext2_group_desc) * (numberOfGroups + 1));
+  int GROUP_OFFSET = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block);
 
-// void printInodes()
-// {
-//   struct ext2_group_desc* groupDescriptor;
-//   groupDescriptor = malloc(sizeof(struct ext2_group_desc) * (numberOfGroups + 1));
-//   int GROUP_OFFSET = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block);
+  for (int i = 0; i < numberOfGroups; i++) {
+    __u32 inodeTable = groupDescriptor[i].bg_inode_table;
+    struct ext2_inode inode;
 
-//   for (int i = 0; i < numberOfGroups; i++) {
-//     __u32 inodeTable = groupDescriptor[i].bg_inode_table;
-//     struct ext2_inode inode;
+    for (int inodeNumber = 2; inodeNumber < inodesPerGroup; inodeNumber++) {
+      off_t offset = (SUPERBLOCK_OFFSET + groupDescriptor[i].bg_inode_table) + (inodeNumber - 1) * sizeof(struct ext2_inode);
 
-//     for (int inodeNumber = 2; inodeNumber < inodesPerGroup; inodeNumber++) {
-//       off_t offset = (SUPERBLOCK_OFFSET + groupDescriptor[i].bg_inode_table) + (inodeNumber - 1) * sizeof(struct ext2_inode);
+      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
 
-//       pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
+      // File Type
+      char fileType = '?';
+      if (EXT2_ISDIR(inode.i_mode)) { // Directory
+        fileType = 'd';
+      } else if (EXT2_ISLNK(inode.i_mode)) { // Link
+        fileType = 's';
+      } else if (EXT2_ISREG(node.i_mode)) { // Regular File
+        fileType = 'f';
+      }
 
-//       // File Type
-//       char fileType = '?';
-//       if (EXT2_ISDIR(inode.i_mode)) { // Directory
-//         fileType = 'd';
-//       } else if (EXT2_ISLNK(inode.i_mode)) { // Link
-//         fileType = 's';
-//       } else if (EXT2_ISREG(node.i_mode)) { // Regular File
-//         fileType = 'f';
-//       }
+      uint16_t mode = inode.i_mode;
 
-//       uint16_t mode = inode.i_mode;
+      // Times
+      char changeTime[20];
+      char modificationTime[20];
+      char lastAccessTime[20];
+      formatInodeTime(inode.i_ctime, changeTime);
+      formatInodeTime(inode.i_mtime, modificationTime);
+      formatInodeTime(inode.i_atime, lastAccessTime);
 
-//       // Times
-//       char changeTime[20];
-//       char modificationTime[20];
-//       char lastAccessTime[20];
-//       formatInodeTime(inode.i_ctime, changeTime);
-//       formatInodeTime(inode.i_mtime, modificationTime);
-//       formatInodeTime(inode.i_atime, lastAccessTime);
-
-//       /*
-//       1. INODE
-//       2. inode number (decimal)
-//       3. file type ('f' for file, 'd' for directory, 's' for symbolic link, '?" for anything else)
-//       4. mode (low order 12-bits, octal ... suggested format "0%o")
-//       5. owner (decimal)
-//       6. group (decimal)
-//       7. link count (decimal)
-//       8. time of last I-node change (mm/dd/yy hh:mm:ss, GMT)
-//       9. modification time (mm/dd/yy hh:mm:ss, GMT)
-//       10. time of last access (mm/dd/yy hh:mm:ss, GMT)
-//       11. file size (decimal)
-//       12. number of blocks (decimal)
-//       */
-//       printf("INODE,%d,%c,0%o,%u,%u,%u,%s,%s,%s,%u,%u\n",
-//           inodeNumber,
-//           fileType,
-//           mode,
-//           inode.i_uid,
-//           inode.i_gid,
-//           inode.i_links_count,
-//           changeTime,
-//           modificationTime,
-//           lastAccessTime,
-//           inode.i_size,
-//           inode.i_blocks);
-//     }
-//   }
-// }
+      /*
+      1. INODE
+      2. inode number (decimal)
+      3. file type ('f' for file, 'd' for directory, 's' for symbolic link, '?" for anything else)
+      4. mode (low order 12-bits, octal ... suggested format "0%o")
+      5. owner (decimal)
+      6. group (decimal)
+      7. link count (decimal)
+      8. time of last I-node change (mm/dd/yy hh:mm:ss, GMT)
+      9. modification time (mm/dd/yy hh:mm:ss, GMT)
+      10. time of last access (mm/dd/yy hh:mm:ss, GMT)
+      11. file size (decimal)
+      12. number of blocks (decimal)
+      */
+      printf("INODE,%d,%c,0%o,%u,%u,%u,%s,%s,%s,%u,%u\n",
+          inodeNumber,
+          fileType,
+          mode,
+          inode.i_uid,
+          inode.i_gid,
+          inode.i_links_count,
+          changeTime,
+          modificationTime,
+          lastAccessTime,
+          inode.i_size,
+          inode.i_blocks);
+    }
+  }
+}
 
 // void printDirectoryEntries()
 // {
@@ -265,11 +261,9 @@ int main(int argc, char** argv)
   printGroups();
   printFreeBlockEntries();
   printFreeInodeEntries();
-  /*
   printInodes();
-  printDirectoryEntries();
-  printIndirectBlockReferences();
-  */
+  // printDirectoryEntries();
+  // printIndirectBlockReferences();
 
   exit(0);
 }
