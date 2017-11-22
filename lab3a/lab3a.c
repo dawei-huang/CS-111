@@ -36,7 +36,7 @@ void printSuperblocks()
 
   // error if superblock.s_magic != EXT2_SUPER_MAGIC
 
-  blockSize = EXT2_MIN_BLOCK_SIZE << s_log_block_size;
+  blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
 
   /*
   1. SUPERBLOCK
