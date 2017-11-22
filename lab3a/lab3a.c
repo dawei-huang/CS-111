@@ -162,14 +162,13 @@ void printInodes()
 {
   struct ext2_group_desc* groupDescriptor;
   groupDescriptor = malloc(sizeof(struct ext2_group_desc) * (numberOfGroups + 1));
-  int GROUP_OFFSET = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block);
 
   for (int i = 0; i < numberOfGroups; i++) {
     __u32 inodeTable = groupDescriptor[i].bg_inode_table;
     struct ext2_inode inode;
 
     for (int inodeNumber = 2; inodeNumber < inodesPerGroup; inodeNumber++) {
-      off_t offset = (SUPERBLOCK_OFFSET + groupDescriptor[i].bg_inode_table) + (inodeNumber - 1) * sizeof(struct ext2_inode);
+      off_t offset = (SUPERBLOCK_OFFSET + inodeTable) + (inodeNumber - 1) * sizeof(struct ext2_inode);
 
       pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
 
@@ -183,7 +182,7 @@ void printInodes()
         fileType = 'f';
       }
 
-      uint16_t mode = inode.i_mode;
+      __u16 mode = inode.i_mode;
 
       // Times
       char changeTime[20];
