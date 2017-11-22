@@ -167,7 +167,7 @@ void printInodes()
     for (int inodeNumber = 2; inodeNumber < inodesPerGroup; inodeNumber++) {
       off_t offset = (SUPERBLOCK_OFFSET + inodeTable) + (inodeNumber - 1) * sizeof(struct ext2_inode);
 
-      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
+      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), offset);
 
       // File Type
       char fileType = '?';
