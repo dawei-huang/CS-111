@@ -118,37 +118,34 @@ void printFreeBlockEntries()
   }
 }
 
-// void printFreeInodeEntries()
-// {
-//   for (int i = 0; i < group_size; i++) {
-//     char* bitmap_buffer = malloc(block_size);
-//     pread(fileSystemDescriptor, bitmap_buffer, block_size, group_d[i].bg_inode_bitmap * (block_size));
+void printFreeInodeEntries()
+{
+  // For each group
+  for (int i = 0; i < numberOfGroups + 1; i++) {
 
-//     //char* compare_bitmap = malloc(block_size);
-//     //bzero(compare_bitmap, block_size);
-//     //compare_bitmap[block_size-1] = 1;
+    __u32 bitmap = groupDescriptor[i].bg_inode_bitmap;
 
-//     //for each inodes
-//     int j = 0;
-//     for (; j < block_size; j++) {
-//       //if (*(bitmap_buffer) & *(compare_bitmap)) {
-//       //dprintf(;
+    // For each bit in bitmap
+    for (int j = 0; j < blockSize; j++) {
 
-//       //for each bit
-//       int k = 0;
-//       int bitmap_cmp = 1;
-//       for (; k < 8; k++) {
-//         if ((bitmap_buffer[j] & bitmap_cmp) == 0) {
-//           /*
-//           1. IFREE
-//           2. number of the free I-node (decimal)
-//           */
-//           dprintf(fileSystemDescriptor, "BFREE,%d\n", (i * inodesPerGroup) + (j * 8) + k + 1);
-//         }
-//         bitmap_cmp = bitmap_cmp << 1;
-//       }
-//     }
-//   }
+      int compare = 1;
+      char buffer;
+      pread(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
+
+      for (int k = 0; k < 8; k++) {
+        if ((buffer & compare) == 0) {
+          /*
+          1. IFREE
+          2. number of the free I-node (decimal)
+          */
+          printf("IFREE,%u\n", (i * inodesPerGroup) + (j * 8) + k + 1);
+        }
+
+        compare = compare << 1;
+      }
+    }
+  }
+}
 
 //   /*Inode summary*/
 //   int inode_offset = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block) + group_size * sizeof(struct ext2_group_desc);
