@@ -100,25 +100,19 @@ void printFreeBlockEntries()
   // For each group
   for (int i = 0; i < numberOfGroups + 1; i++) {
 
-    printf("in loop i = %i\n", i);
-
     __u32 bitmap = groupDescriptor[i].bg_block_bitmap;
 
-    char compare = 1;
+    int compare = 1;
 
     // For each bit in bitmap
     for (int j = 0; j < blockSize; j++) {
-      printf("in loop j = %i\n", j);
 
       char buffer;
-      pread(fileSystemDescriptor, &buffer, 1, bitmap * blockSize + j);
-
-      printf("Buffer: %c\n", buffer);
+      pread(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
 
       for (int k = 0; k < 8; k++) {
-        printf("in loop k = %i\n", k);
         if ((buffer & compare) == 0) {
-          printf("BFREE,%d\n", (i * blocksPerGroup) + (j * 8) + k + 1);
+          printf("BFREE,%lu\n", (i * blocksPerGroup) + (j * 8) + k + 1);
         }
 
         compare = compare << 1;
