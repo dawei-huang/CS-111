@@ -108,7 +108,7 @@ void printFreeBlockEntries()
       char buffer;
       pread(fileSystemDescriptor, &buffer, 1, bitmap * blockSize + j);
 
-      fprintf("Buffer: %c", buffer);
+      printf("Buffer: %c", buffer);
 
       for (int k = 0; k < 8; k++) {
         if ((buffer & compare) == 0) {
