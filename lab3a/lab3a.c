@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -7,16 +8,17 @@
 
 #include "ext2_fs.h"
 
+// From reading
 #define EXT2_S_IFDIR 0x4000
 #define EXT2_S_IFLNK 0xA000
 #define EXT2_S_IFREG 0x8000
-
 #define EXT2_ISDIR(i_mode) ((i_mode & EXT2_S_IFDIR) == EXT2_S_IFDIR)
 #define EXT2_ISLNK(i_mode) ((i_mode & EXT2_S_IFLNK) == EXT2_S_IFLNK)
 #define EXT2_ISREG(i_mode) ((i_mode & EXT2_S_IFREG) == EXT2_S_IFREG)
 
-#define SUPERBLOCK_OFFSET 1024
-#define GROUP_OFFSET 1024 + sizeof(struct ext2_super_block)
+const int SUPERBLOCK_OFFSET = 1024;
+int GROUP_OFFSET = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block);
+int INODE_OFFSET;
 
 int fileSystemDescriptor;
 struct ext2_super_block superblock;
@@ -142,18 +144,29 @@ void formatInodeTime(__u32 time, char* timeString)
   strftime(timeString, 80, "%m/%d/%y %H:%M:%S", &GMTTime);
 }
 
+bool isAllocatedInode(struct ext2_inode inode)
+{
+  if (inode.i_mode != 0 && inode.i_links_count != 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void printInodes()
 {
+  INODE_OFFSET = GROUP_OFFSET + (numberOfGroups * sizeof(struct ext2_group_desc));
+
   for (int i = 0; i < numberOfGroups + 1; i++) {
     __u32 inodeTable = groupDescriptor[i].bg_inode_table;
 
-    for (int inodeNumber = 0; inodeNumber < superblock.s_inodes_per_group; inodeNumber++) {
-      printf("inodeNumber: %i\n", inodeNumber);
-
-      off_t offset = ;
-
+    for (int j = 0; j < superblock.s_inodes_per_group; j++) {
       struct ext2_inode inode;
-      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), offset);
+      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), INODE_OFFSET + (j * sizeof(ext2_inode)));
+
+      if (!isAllocatedInode(inode)) {
+        continue;
+      }
 
       // File Type
       char fileType = '?';
@@ -164,8 +177,6 @@ void printInodes()
       } else if (EXT2_ISREG(inode.i_mode)) { // Regular File
         fileType = 'f';
       }
-
-      __u16 mode = inode.i_mode;
 
       // Times
       char changeTime[20];
@@ -188,6 +199,7 @@ void printInodes()
       10. time of last access (mm/dd/yy hh:mm:ss, GMT)
       11. file size (decimal)
       12. number of blocks (decimal)
+      The next fifteen fields are block addresses (decimal, 12 direct, one indirect, one double indirect, one triple indirect).
       */
       printf("INODE,%d,%c,0%o,%u,%u,%u,%s,%s,%s,%u,%u",
           inodeNumber,
@@ -201,11 +213,6 @@ void printInodes()
           lastAccessTime,
           inode.i_size,
           inode.i_blocks);
-
-      for (int j = 0; j < EXT2_N_BLOCKS; j++) {
-        printf(",%u", inode.i_block[j]);
-      }
-      printf("\n");
     }
   }
 }
