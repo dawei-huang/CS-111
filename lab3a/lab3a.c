@@ -98,7 +98,7 @@ void printFreeBlockEntries()
   printf("hello %i\n", numberOfGroups);
 
   // For each group
-  for (int i = 0; i < numberOfGroups; i++) {
+  for (int i = 0; i < numberOfGroups + 1; i++) {
 
     printf("in loop i = %i\n", i);
 
