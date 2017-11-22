@@ -217,11 +217,11 @@ void printInodes()
           lastAccessTime,
           inode.i_size,
           inode.i_blocks);
+      for (int j = 0; j < EXT2_N_BLOCKS; j++) {
+        printf(",%u", inode.i_block[j]);
+      }
+      printf("\n");
     }
-    for (int j = 0; j < EXT2_N_BLOCKS; j++) {
-      printf(",%u", inode.i_block[j]);
-    }
-    printf("\n");
   }
 }
 
