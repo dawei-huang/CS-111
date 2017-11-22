@@ -163,7 +163,7 @@ void printInodes()
   struct ext2_group_desc* groupDescriptor;
   groupDescriptor = malloc(sizeof(struct ext2_group_desc) * (numberOfGroups + 1));
 
-  for (int i = 0; i < numberOfGroups; i++) {
+  for (int i = 0; i < numberOfGroups + 1; i++) {
     __u32 inodeTable = groupDescriptor[i].bg_inode_table;
     struct ext2_inode inode;
 
