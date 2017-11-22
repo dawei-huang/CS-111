@@ -16,7 +16,7 @@
 #define EXT2_ISLNK(i_mode) ((i_mode & EXT2_S_IFLNK) == EXT2_S_IFLNK)
 #define EXT2_ISREG(i_mode) ((i_mode & EXT2_S_IFREG) == EXT2_S_IFREG)
 
-int SUPERBLOCK_OFFSET = 1024;
+#define SUPERBLOCK_OFFSET 1024
 int GROUP_OFFSET = SUPERBLOCK_OFFSET + sizeof(struct ext2_super_block);
 int INODE_OFFSET;
 
@@ -206,7 +206,7 @@ void printInodes()
       printf("INODE,%d,%c,0%o,%u,%u,%u,%s,%s,%s,%u,%u",
           j,
           fileType,
-          mode,
+          inode.i_mode,
           inode.i_uid,
           inode.i_gid,
           inode.i_links_count,
