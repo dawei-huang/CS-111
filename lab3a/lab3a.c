@@ -160,16 +160,17 @@ void printInodes()
   INODE_OFFSET = GROUP_OFFSET + (numberOfGroups * sizeof(struct ext2_group_desc));
 
   for (int i = 0; i < numberOfGroups + 1; i++) {
-    printf("i: %i", i);
+    printf("i: %i\n", i);
     __u32 inodeTable = groupDescriptor[i].bg_inode_table;
 
-    printf("inodes per group: %u", superblock.s_inodes_per_group);
+    printf("inodes per group: %u\n", superblock.s_inodes_per_group);
     for (int j = 0; j < superblock.s_inodes_per_group; j++) {
-      printf("j: %i", j);
+      printf("j: %i\n", j);
       struct ext2_inode inode;
       pread(fileSystemDescriptor, &inode, sizeof(struct ext2_super_block), INODE_OFFSET + (j * sizeof(struct ext2_inode)));
 
       if (!isAllocatedInode(inode)) {
+        j++;
         continue;
       }
 
