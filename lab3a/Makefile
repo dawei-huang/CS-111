@@ -12,4 +12,4 @@ clean:
 	rm -f lab3a lab3a-304792166.tar.gz
 
 dist:
-	tar -zcvf lab3a-304792166.tar.gz Makefile README lab3a.c
+	tar -zcvf lab3a-304792166.tar.gz Makefile README lab3a.c ext2_fs.h
