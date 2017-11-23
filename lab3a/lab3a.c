@@ -1,11 +1,17 @@
+/*
+NAME: Dawei Huang and Nathan Smith 
+EMAIL: daweihuang@ucla.edu and nathan.smith@ucla.edu
+ID: 304792166 and 704787554
+*/
+
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include <string.h>
 
 #include "ext2_fs.h"
 
@@ -50,13 +56,13 @@ void printSuperblocks()
     8. first non-reserved i-node (decimal) (s_first_ino)
   */
   printf("SUPERBLOCK,%u,%u,%u,%u,%u,%u,%u\n",
-	 superblock.s_blocks_count,
-	 superblock.s_inodes_count,
-	 blockSize,
-	 superblock.s_inode_size,
-	 superblock.s_blocks_per_group,
-	 superblock.s_inodes_per_group,
-	 superblock.s_first_ino);
+      superblock.s_blocks_count,
+      superblock.s_inodes_count,
+      blockSize,
+      superblock.s_inode_size,
+      superblock.s_blocks_per_group,
+      superblock.s_inodes_per_group,
+      superblock.s_first_ino);
 }
 
 void printGroups()
@@ -80,14 +86,14 @@ void printGroups()
       9. block number of first block of i-nodes in this group (decimal)
     */
     printf("GROUP,%u,%u,%u,%u,%u,%u,%u,%u\n",
-	   i,
-	   superblock.s_blocks_per_group,
-	   superblock.s_inodes_per_group,
-	   groupDescriptors[i].bg_free_blocks_count,
-	   groupDescriptors[i].bg_free_inodes_count,
-	   groupDescriptors[i].bg_block_bitmap,
-	   groupDescriptors[i].bg_inode_bitmap,
-	   groupDescriptors[i].bg_inode_table);
+        i,
+        superblock.s_blocks_per_group,
+        superblock.s_inodes_per_group,
+        groupDescriptors[i].bg_free_blocks_count,
+        groupDescriptors[i].bg_free_inodes_count,
+        groupDescriptors[i].bg_block_bitmap,
+        groupDescriptors[i].bg_inode_bitmap,
+        groupDescriptors[i].bg_inode_table);
   }
 }
 
@@ -148,7 +154,7 @@ void formatInodeTime(__u32 time, char* timeString)
 {
   time_t convertedTime = time;
   struct tm GMTTime = *gmtime(&convertedTime);
-  strftime(timeString, 80, "%m/%d/%y %H:%M:%S", &GMTTime);
+  strftime(timeString, 20, "%m/%d/%y %H:%M:%S", &GMTTime);
 }
 
 bool isAllocatedInode(struct ext2_inode inode)
@@ -163,9 +169,9 @@ bool isAllocatedInode(struct ext2_inode inode)
 void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
 {
   __u16 directoryEntryLength = 0;
-  
+
   for (unsigned int i = 0; i < inode.i_size; i += directoryEntryLength) {
-    
+
     struct ext2_dir_entry directoryEntry;
     pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(inode.i_block[0]) + i);
     directoryEntryLength = directoryEntry.rec_len;
@@ -173,7 +179,7 @@ void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
     if (directoryEntry.inode == 0) {
       break;
     }
-    
+
     char fileName[EXT2_NAME_LEN + 1];
     memcpy(fileName, directoryEntry.name, directoryEntry.name_len);
     fileName[directoryEntry.name_len] = '\0';
@@ -188,12 +194,12 @@ void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
       7. name (string, surrounded by single-quotes). Don't worry about escaping, we promise there will be no single-quotes or commas in any of the file names.
     */
     printf("DIRENT,%i,%u,%u,%u,%u,'%s'\n",
-	   inodeNumber,
-	   i,
-	   directoryEntry.inode,
-	   directoryEntry.rec_len,
-	   directoryEntry.name_len,
-	   fileName);
+        inodeNumber,
+        i,
+        directoryEntry.inode,
+        directoryEntry.rec_len,
+        directoryEntry.name_len,
+        fileName);
   }
 }
 
@@ -203,44 +209,41 @@ void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirec
   //int* indirectInodeTable3 = malloc(blockSize);
   pread(fileSystemDescriptor, indirectInodeTable, blockSize, BLOCK_OFFSET(inodeBlock));
 
-  
-  
   //iterating through every inode pointer in the table
-  for(unsigned int i = 0, len = blockSize/sizeof(int); i < len; i++) {
-    
+  for (unsigned int i = 0, len = blockSize / sizeof(int); i < len; i++) {
+
     __u16 directoryEntryLength = 0;
 
-    if (indirectInodeTable[i] == 0) break;
-    
+    if (indirectInodeTable[i] == 0) {
+      break;
+    }
+
     //each inode pointer has multiple directory entries
     for (unsigned int j = 0; j < blockSize; j += directoryEntryLength) {
-      
+
       struct ext2_dir_entry directoryEntry;
-      pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry),  BLOCK_OFFSET(indirectInodeTable[0]) + j);
+      pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(indirectInodeTable[0]) + j);
       directoryEntryLength = directoryEntry.rec_len;
 
       if (directoryEntry.inode != 0) {
-	int logicalOffset =  i + EXT2_NDIR_BLOCKS + indirectionLevel - 1;
-	int blockNumberOfIndirectBlock = inodeBlock;
-	int blockNumberOfReferencedBlock = inodeBlock + i + 1;
-	
-	printf("INDIRECT,%i,%i,%u,%i,%i\n",
-	       inodeNumber,
-	       indirectionLevel,
-	       logicalOffset,
-	       blockNumberOfIndirectBlock,
-	       blockNumberOfReferencedBlock);
+        int logicalOffset = i + EXT2_NDIR_BLOCKS + indirectionLevel - 1;
+        int blockNumberOfIndirectBlock = inodeBlock;
+        int blockNumberOfReferencedBlock = inodeBlock + i + 1;
+
+        printf("INDIRECT,%i,%i,%u,%i,%i\n",
+            inodeNumber,
+            indirectionLevel,
+            logicalOffset,
+            blockNumberOfIndirectBlock,
+            blockNumberOfReferencedBlock);
       }
     }
 
     /*if (indirectionLevel > 1) {
       int* indirectInodeTable2 = malloc(blockSize);
       printIndirectBlockReferences(inodeBlock, inodeNumber, indirectionLevel - 1, indirectInodeTable2);
-      }*/ 
+      }*/
   }
-
-  
-
 }
 
 void printInodes()
@@ -277,32 +280,31 @@ void printInodes()
       __u16 mode = inode.i_mode & 0b0000111111111111; // Get lower 12 bytes
 
       /*
-	1. INODE
-	2. inode number (decimal)
-	3. file type ('f' for file, 'd' for directory, 's' for symbolic link, '?" for anything else)
-	4. mode (low order 12-bits, octal ... suggested format "0%o")
-	5. owner (decimal)
-	6. group (decimal)
-	7. link count (decimal)
-	8. time of last I-node change (mm/dd/yy hh:mm:ss, GMT)
-	9. modification time (mm/dd/yy hh:mm:ss, GMT)
-	10. time of last access (mm/dd/yy hh:mm:ss, GMT)
-	11. file size (decimal)
-	12. number of blocks (decimal)
-	The next fifteen fields are block addresses (decimal, 12 direct, one indirect, one double indirect, one triple indirect).
+      1. INODE
+      2. inode number (decimal)
+      3. file type ('f' for file, 'd' for directory, 's' for symbolic link, '?" for anything else)
+      4. mode (low order 12-bits, octal ... suggested format "0%o")
+      5. owner (decimal)
+      6. group (decimal)
+      7. link count (decimal)
+      8. time of last I-node change (mm/dd/yy hh:mm:ss, GMT)
+      9. modification time (mm/dd/yy hh:mm:ss, GMT)
+      10. time of last access (mm/dd/yy hh:mm:ss, GMT)
+      11. file size (decimal)
+      12. number of blocks (decimal) The next fifteen fields are block addresses (decimal, 12 direct, one indirect, one double indirect, one triple indirect).
       */
       printf("INODE,%d,%c,%o,%u,%u,%u,%s,%s,%s,%u,%u",
-	     inodeNumber,
-	     fileType,
-	     mode,
-	     inode.i_uid,
-	     inode.i_gid,
-	     inode.i_links_count,
-	     changeTime,
-	     modificationTime,
-	     lastAccessTime,
-	     inode.i_size,
-	     inode.i_blocks);
+          inodeNumber,
+          fileType,
+          mode,
+          inode.i_uid,
+          inode.i_gid,
+          inode.i_links_count,
+          changeTime,
+          modificationTime,
+          lastAccessTime,
+          inode.i_size,
+          inode.i_blocks);
       for (int j = 0; j < EXT2_N_BLOCKS; j++) {
         printf(",%u", inode.i_block[j]);
       }
@@ -316,7 +318,7 @@ void printInodes()
 
       int* indirectInodeTable = malloc(blockSize);
       if (inode.i_block[EXT2_IND_BLOCK] != 0) {
-	printIndirectBlockReferences(inode.i_block[EXT2_IND_BLOCK], inodeNumber, 1, indirectInodeTable);
+        printIndirectBlockReferences(inode.i_block[EXT2_IND_BLOCK], inodeNumber, 1, indirectInodeTable);
       }
       //if (inode.i_block[EXT2_DIND_BLOCK] != 0) {
       //printIndirectBlockReferences(inode.i_block[EXT2_DIND_BLOCK], inodeNumber, 2, indirectInodeTable);
@@ -346,7 +348,6 @@ int main(int argc, char** argv)
   printFreeBlockEntries();
   printFreeInodeEntries();
   printInodes();
-  // printIndirectBlockReferences();
 
   exit(0);
 }
