@@ -159,6 +159,59 @@ bool isAllocatedInode(struct ext2_inode inode)
   }
 }
 
+void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
+{
+  __u16 directoryEntryLength = 0;
+
+  for (unsigned int i = 0; i < inode.i_size; i += directoryEntryLength) {
+    struct ext2_dir_entry directoryEntry;
+    pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(inode.i_block[0]) + i);
+    directoryEntryLength = directoryEntry.rec_len;
+
+    char fileName[EXT2_NAME_LEN + 1];
+    memcpy(fileName, directoryEntry.name, directoryEntry.name_len);
+    fileName[directoryEntry.name_len] = '\0';
+
+    /*
+    1. DIRENT
+    2. parent inode number (decimal) ... the I-node number of the directory that contains this entry
+    3. logical byte offset (decimal) of this entry within the directory
+    4. inode number of the referenced file (decimal)
+    5. entry length (decimal)
+    6. name length (decimal)
+    7. name (string, surrounded by single-quotes). Don't worry about escaping, we promise there will be no single-quotes or commas in any of the file names.
+    */
+    printf("DIRENT,%i,%u,%u,%u,%u,'%s'\n",
+        inodeNumber,
+        i,
+        directoryEntry.inode,
+        directoryEntry.rec_len,
+        directoryEntry.name_len,
+        fileName);
+  }
+}
+
+void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirectionLevel)
+{
+  int blockNumberOfIndirectBlock = 0;
+  int blockNumberOfReferencedBlock = 0;
+
+  /*
+  1. INDIRECT
+  2. I-node number of the owning file (decimal)
+  3. (decimal) level of indirection for the block being scanned ... 1 single   indirect, 2 double indirect, 3 triple
+  4. logical block offset (decimal) represented by the referenced block. If the referenced block is a data block, this is the logical block offset of that block within the file. If the referenced block is a single- or double-indirect  block, this is the same as the logical offset of the first data block to which it refers.
+  5. block number of the (1,2,3) indirect block being scanned (decimal) ... not the highest level block (in the recursive scan), but the lower level block that contains the block reference reported by this entry.
+  6. block number of the referenced block (decimal)
+  */
+  printf("INDIRECT,%i,%i,%u,%i,%i\n",
+      inodeNumber,
+      indirectionLevel,
+      BLOCK_OFFSET(inodeBlock),
+      blockNumberOfIndirectBlock,
+      blockNumberOfReferencedBlock);
+}
+
 void printInodes()
 {
   for (int i = 0; i < numberOfGroups; i++) {
@@ -190,6 +243,8 @@ void printInodes()
       formatInodeTime(inode.i_mtime, modificationTime);
       formatInodeTime(inode.i_atime, lastAccessTime);
 
+      __u16 mode = inode.i_mode & 0b0000111111111111; // Get lower 12 bytes
+
       /*
       1. INODE
       2. inode number (decimal)
@@ -205,10 +260,10 @@ void printInodes()
       12. number of blocks (decimal)
       The next fifteen fields are block addresses (decimal, 12 direct, one indirect, one double indirect, one triple indirect).
       */
-      printf("INODE,%d,%c,0%o,%u,%u,%u,%s,%s,%s,%u,%u",
+      printf("INODE,%d,%c,%o,%u,%u,%u,%s,%s,%s,%u,%u",
           inodeNumber,
           fileType,
-          inode.i_mode,
+          mode,
           inode.i_uid,
           inode.i_gid,
           inode.i_links_count,
@@ -221,34 +276,25 @@ void printInodes()
         printf(",%u", inode.i_block[j]);
       }
       printf("\n");
+
+      // Check if directory or if inode has indirect blocks
+      // Directory
+      if (fileType == 'd') {
+        printDirectoryEntries(inode, inodeNumber);
+      }
+
+      // if (inode.i_block[EXT2_IND_BLOCK] != 0) {
+      //   printIndirectBlockReferences(inode.i_block, inodeNumber, 1);
+      // }
+      // if (inode.i_block[EXT2_DIND_BLOCK] != 0) {
+      //   printIndirectBlockReferences(inode.i_block, inodeNumber, 2);
+      // }
+      // if (inode.i_block[EXT2_TIND_BLOCK] != 0) {
+      //   printIndirectBlockReferences(inode.i_block, inodeNumber, 3);
+      // }
     }
   }
 }
-
-// void printDirectoryEntries()
-// {
-//   /*
-//   1. DIRENT
-//   2. parent inode number (decimal) ... the I-node number of the directory that contains this entry
-//   3. logical byte offset (decimal) of this entry within the directory
-//   4. inode number of the referenced file (decimal)
-//   5. entry length (decimal)
-//   6. name length (decimal)
-//   7. name (string, surrounded by single-quotes). Don't worry about escaping, we promise there will be no single-quotes or commas in any of the file names.
-//   */
-// }
-
-// void printIndirectBlockReferences()
-// {
-//   /*
-//   1. INDIRECT
-//   2. I-node number of the owning file (decimal)
-//   3. (decimal) level of indirection for the block being scanned ... 1 single   indirect, 2 double indirect, 3 triple
-//   4. logical block offset (decimal) represented by the referenced block. If the referenced block is a data block, this is the logical block offset of that block within the file. If the referenced block is a single- or double-indirect  block, this is the same as the logical offset of the first data block to which it refers.
-//   5. block number of the (1,2,3) indirect block being scanned (decimal) ... not the highest level block (in the recursive scan), but the lower level block that contains the block reference reported by this entry.
-//   6. block number of the referenced block (decimal)
-//   */
-// }
 
 int main(int argc, char** argv)
 {
@@ -268,7 +314,6 @@ int main(int argc, char** argv)
   printFreeBlockEntries();
   printFreeInodeEntries();
   printInodes();
-  // printDirectoryEntries();
   // printIndirectBlockReferences();
 
   exit(0);
