@@ -1,7 +1,7 @@
 /*
-NAME: Dawei Huang and Nathan Smith 
-EMAIL: daweihuang@ucla.edu and nathan.smith@ucla.edu
-ID: 304792166 and 704787554
+NAME: Dawei Huang, Nathan Smith 
+EMAIL: daweihuang@ucla.edu, nathan.smith@ucla.edu
+ID: 304792166, 704787554
 */
 
 #include <fcntl.h>
