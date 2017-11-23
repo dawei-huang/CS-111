@@ -162,12 +162,17 @@ bool isAllocatedInode(struct ext2_inode inode)
 void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
 {
   __u16 directoryEntryLength = 0;
-
+  
   for (unsigned int i = 0; i < inode.i_size; i += directoryEntryLength) {
+    
     struct ext2_dir_entry directoryEntry;
     pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(inode.i_block[0]) + i);
     directoryEntryLength = directoryEntry.rec_len;
 
+    if (directoryEntry.inode == 0) {
+      break;
+    }
+    
     char fileName[EXT2_NAME_LEN + 1];
     memcpy(fileName, directoryEntry.name, directoryEntry.name_len);
     fileName[directoryEntry.name_len] = '\0';
