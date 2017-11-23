@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "ext2_fs.h"
 
@@ -98,7 +99,7 @@ void printFreeBlockEntries()
     __u32 bitmap = groupDescriptors[i].bg_block_bitmap;
 
     // For each bit in bitmap
-    for (int j = 0; j < blockSize; j++) {
+    for (unsigned int j = 0; j < blockSize; j++) {
       int compare = 1;
       char buffer;
       pread(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
@@ -124,7 +125,7 @@ void printFreeInodeEntries()
     __u32 bitmap = groupDescriptors[i].bg_inode_bitmap;
 
     // For each bit in bitmap
-    for (int j = 0; j < blockSize; j++) {
+    for (unsigned int j = 0; j < blockSize; j++) {
       int compare = 1;
       char buffer;
       pread(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
@@ -209,7 +210,7 @@ void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirec
   int i = 0;
   while (addresses[i] != 0) {
 
-    int offset = 0;
+    unsigned int offset = 0;
     while (offset < blockSize) {
       pread(fileSystemDescriptor, &dirent, sizeof(struct ext2_dir_entry), addresses[i]*blockSize + offset);
 
@@ -250,7 +251,7 @@ void printInodes()
   for (int i = 0; i < numberOfGroups; i++) {
     __u32 inodeTable = groupDescriptors[i].bg_inode_table;
 
-    for (int inodeNumber = EXT2_ROOT_INO; inodeNumber < superblock.s_inodes_per_group; inodeNumber++) {
+    for (unsigned int inodeNumber = EXT2_ROOT_INO; inodeNumber < superblock.s_inodes_per_group; inodeNumber++) {
       struct ext2_inode inode;
       pread(fileSystemDescriptor, &inode, sizeof(struct ext2_inode), BLOCK_OFFSET(inodeTable) + (inodeNumber - 1) * sizeof(struct ext2_inode));
 
@@ -317,7 +318,7 @@ void printInodes()
       }
 
       //if (inode.i_block[EXT2_IND_BLOCK] != 0) {
-      //   printIndirectBlockReferences(inode.i_block[EXT2_IND_BLOCK], inodeNumber, 1);
+      //  printIndirectBlockReferences(inode.i_block[EXT2_IND_BLOCK], inodeNumber, 1);
       //}
       // if (inode.i_block[EXT2_DIND_BLOCK] != 0) {
       //   printIndirectBlockReferences(inode.i_block, inodeNumber, 2);
