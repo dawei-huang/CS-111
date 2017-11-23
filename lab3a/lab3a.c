@@ -193,23 +193,51 @@ void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
 
 void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirectionLevel)
 {
+  
   int blockNumberOfIndirectBlock = 0;
   int blockNumberOfReferencedBlock = 0;
 
-  /*
-  1. INDIRECT
-  2. I-node number of the owning file (decimal)
-  3. (decimal) level of indirection for the block being scanned ... 1 single   indirect, 2 double indirect, 3 triple
-  4. logical block offset (decimal) represented by the referenced block. If the referenced block is a data block, this is the logical block offset of that block within the file. If the referenced block is a single- or double-indirect  block, this is the same as the logical offset of the first data block to which it refers.
-  5. block number of the (1,2,3) indirect block being scanned (decimal) ... not the highest level block (in the recursive scan), but the lower level block that contains the block reference reported by this entry.
-  6. block number of the referenced block (decimal)
-  */
-  printf("INDIRECT,%i,%i,%u,%i,%i\n",
-      inodeNumber,
-      indirectionLevel,
-      BLOCK_OFFSET(inodeBlock),
-      blockNumberOfIndirectBlock,
-      blockNumberOfReferencedBlock);
+  struct ext2_dir_entry dirent;
+  int* addresses = malloc(blockSize);
+  pread(fileSystemDescriptor, addresses, blockSize, inodeBlock*blockSize);
+
+  int i = 0;
+  while (addresses[i] != 0) {
+
+    int offset = 0;
+    while (offset < blockSize) {
+      pread(fileSystemDescriptor, &dirent, sizeof(struct ext2_dir_entry), addresses[i]*blockSize + offset);
+
+      if (dirent.inode == 0) {
+	blockNumberOfReferencedBlock = i + 1;
+	blockNumberOfIndirectBlock = inodeBlock;
+	
+	/*
+	  1. INDIRECT
+	  2. I-node number of the owning file (decimal)
+	  3. (decimal) level of indirection for the block being scanned ... 1 single   indirect, 2 double indirect, 3 triple
+	  4. logical block offset (decimal) represented by the referenced block. If the referenced block is a data block, this is the logical block offset of that block within the file. If the referenced block is a single- or double-indirect  block, this is the same as the logical offset of the first data block to which it refers.
+	  5. block number of the (1,2,3) indirect block being scanned (decimal) ... not the highest level block (in the recursive scan), but the lower level block that contains the block reference reported by this entry.
+	  6. block number of the referenced block (decimal)
+	*/
+	printf("INDIRECT,%i,%i,%u,%i,%i\n",
+	       inodeNumber,
+	       indirectionLevel,
+	       BLOCK_OFFSET(inodeBlock),
+	       blockNumberOfIndirectBlock,
+	       blockNumberOfReferencedBlock);
+      }
+
+      offset += dirent.rec_len;
+    }
+
+    
+    i++;
+  }
+
+
+  
+
 }
 
 void printInodes()
@@ -283,9 +311,9 @@ void printInodes()
         printDirectoryEntries(inode, inodeNumber);
       }
 
-      // if (inode.i_block[EXT2_IND_BLOCK] != 0) {
-      //   printIndirectBlockReferences(inode.i_block, inodeNumber, 1);
-      // }
+      //if (inode.i_block[EXT2_IND_BLOCK] != 0) {
+      //   printIndirectBlockReferences(inode.i_block[EXT2_IND_BLOCK], inodeNumber, 1);
+      //}
       // if (inode.i_block[EXT2_DIND_BLOCK] != 0) {
       //   printIndirectBlockReferences(inode.i_block, inodeNumber, 2);
       // }
