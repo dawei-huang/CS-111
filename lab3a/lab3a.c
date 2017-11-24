@@ -207,8 +207,8 @@ void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
 
 void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirectionLevel, __u32 logicalOffset)
 {
-  uint32_t numberOfEntries = blockSize / sizeof(uint32_t);
-  uint32_t entries[numberOfEntries];
+  __u32 numberOfEntries = blockSize / sizeof(__u32);
+  __u32 entries[numberOfEntries];
   pread(fileSystemDescriptor, entries, blockSize, BLOCK_OFFSET(inodeBlock));
 
   for (unsigned int i = 0; i < numberOfEntries; i++) {
