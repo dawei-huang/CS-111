@@ -4,6 +4,7 @@ EMAIL: daweihuang@ucla.edu, nathan.smith@ucla.edu
 ID: 304792166, 704787554
 */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -35,14 +36,25 @@ struct ext2_super_block superblock;
 struct ext2_group_desc* groupDescriptors;
 __u32 blockSize;
 
+ssize_t preadAndCheck(int fd, void* buf, size_t count, off_t offset)
+{
+  ssize_t status = pread(fd, buf, count, offset);
+  if (status == -1) {
+    fprintf(stderr, "[preadAndCheck error] Error Number: %d\nMessage: %s\n", errno, strerror(errno));
+    exit(2);
+  }
+  return status;
+}
+
 void printSuperblocks()
 {
 
   // Superblock is always located at byte offset 1024
-  pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
+  preadAndCheck(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
 
   if (superblock.s_magic != EXT2_SUPER_MAGIC) {
     fprintf(stderr, "Error reading filesystem.\n");
+    exit(2);
   }
 
   blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
@@ -74,7 +86,7 @@ void printGroups()
   groupDescriptors = malloc(numberOfGroups * sizeof(struct ext2_group_desc));
 
   for (int i = 0; i < numberOfGroups; i++) {
-    pread(fileSystemDescriptor, &groupDescriptors[i], sizeof(struct ext2_group_desc), SUPERBLOCK_OFFSET + blockSize);
+    preadAndCheck(fileSystemDescriptor, &groupDescriptors[i], sizeof(struct ext2_group_desc), SUPERBLOCK_OFFSET + blockSize);
 
     /*
       1. GROUP
@@ -110,7 +122,7 @@ void printFreeBlockEntries()
     for (unsigned int j = 0; j < blockSize; j++) {
       int compare = 1;
       char buffer;
-      pread(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
+      preadAndCheck(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
 
       for (int k = 0; k < 8; k++) {
         if ((buffer & compare) == 0) {
@@ -136,7 +148,7 @@ void printFreeInodeEntries()
     for (unsigned int j = 0; j < blockSize; j++) {
       int compare = 1;
       char buffer;
-      pread(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
+      preadAndCheck(fileSystemDescriptor, &buffer, 1, (bitmap * blockSize) + j);
 
       for (int k = 0; k < 8; k++) {
         if ((buffer & compare) == 0) {
@@ -177,7 +189,7 @@ void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
 
     //reading one directory entry at a time
     struct ext2_dir_entry directoryEntry;
-    pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(inode.i_block[0]) + i);
+    preadAndCheck(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(inode.i_block[0]) + i);
     directoryEntryLength = directoryEntry.rec_len;
 
     if (directoryEntry.inode == 0) {
@@ -211,7 +223,7 @@ void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirec
 {
   __u32 numberOfEntries = blockSize / sizeof(__u32);
   __u32 entries[numberOfEntries];
-  pread(fileSystemDescriptor, entries, blockSize, BLOCK_OFFSET(inodeBlock));
+  preadAndCheck(fileSystemDescriptor, entries, blockSize, BLOCK_OFFSET(inodeBlock));
 
   for (unsigned int i = 0; i < numberOfEntries; i++) {
 
@@ -233,10 +245,8 @@ void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirec
           entries[i]);
 
       if (indirectionLevel == 2) {
-        // printf("Logical offset (2): %u\n", logicalOffset);
         printIndirectBlockReferences(entries[i], inodeNumber, indirectionLevel - 1, logicalOffset);
       } else if (indirectionLevel == 3) {
-        // printf("Logical offset (3): %u\n", logicalOffset);
         printIndirectBlockReferences(entries[i], inodeNumber, indirectionLevel - 1, logicalOffset);
       }
     }
@@ -252,7 +262,7 @@ void printInodes()
     //for every inodes in group
     for (unsigned int inodeNumber = EXT2_ROOT_INO; inodeNumber < superblock.s_inodes_per_group; inodeNumber++) {
       struct ext2_inode inode;
-      pread(fileSystemDescriptor, &inode, sizeof(struct ext2_inode), BLOCK_OFFSET(inodeTable) + (inodeNumber - 1) * sizeof(struct ext2_inode));
+      preadAndCheck(fileSystemDescriptor, &inode, sizeof(struct ext2_inode), BLOCK_OFFSET(inodeTable) + (inodeNumber - 1) * sizeof(struct ext2_inode));
 
       if (!isAllocatedInode(inode)) {
         continue;

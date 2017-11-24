@@ -2,17 +2,11 @@ NAME: Dawei Huang, Nathan Smith
 EMAIL: daweihuang@ucla.edu, nathan.smith@ucla.edu
 ID: 304792166, 704787554
 
+Files:
+- README: contains description of our included files.
+- lab3a.c: parses a *.img file in order to find information about the file system and prints it out. The information in lab3a is confirmed by the debugfs command.
+- ext2_fs.h: contains the header file to the ext2 file system that we implemented in lab3a.
+- Makefile: contains the makefile of the lab3a executable
 
-http://cs.smith.edu/~nhowe/Teaching/csc262/oldlabs/ext2.html#itable
-
-README: contains description of our included files.
-
-lab3a.c: parse through the *.img file in order to find information about the file system and prints it out. The information in lab3a is confirmed by the debugfs command.
-
-ext2_fs.h: contains the header file to the ext2 file system that we implemented in lab3a.
-
-Makefile: contains the makefile of the lab3a executable
-
-
-
-Other information: I tried to implement recursion into the indirect blocks but unfortunately it was too complex for me to do it quickly. Fortunately Nathan helped me in implementing recursion in the indirect blocks function.
+Notes:
+We had a lot of trouble implementing the indirect block references but after much struggling we think we got it!
