@@ -15,4 +15,4 @@ Makefile: contains the makefile of the lab3a executable
 
 
 
-Other information: I tried to implement recursion into the indirect blocks but unfortunately it was too complex for me to do it quickly and use if-statements instead.
+Other information: I tried to implement recursion into the indirect blocks but unfortunately it was too complex for me to do it quickly. Fortunately Nathan helped me in implementing recursion in the indirect blocks function.
