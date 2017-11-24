@@ -212,18 +212,18 @@ void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirec
   pread(fileSystemDescriptor, entries, blockSize, BLOCK_OFFSET(inodeBlock));
 
   for (unsigned int i = 0; i < numberOfEntries; i++) {
-
-    if (indirectionLevel == 1) {
-      logicalOffset = logicalOffset + i;
-    } else if (indirectionLevel == 2) {
-      logicalOffset = 12 + (256 * (i + 1));
-    } else if (indirectionLevel == 3) {
-      logicalOffset = 12 + 256 + (65536 * (i + 1));
-    }
-
     // printf("Logical offset (1): %u\n", logicalOffset);
 
     if (entries[i] != 0) {
+
+      if (indirectionLevel == 1) {
+        logicalOffset = logicalOffset + i;
+      } else if (indirectionLevel == 2) {
+        logicalOffset = logicalOffset + (256 * i);
+      } else if (indirectionLevel == 3) {
+        logicalOffset = 12 + 256 + (65536 * (i + 1));
+      }
+
       printf("INDIRECT,%u,%u,%u,%u,%u\n",
           inodeNumber,
           indirectionLevel,
