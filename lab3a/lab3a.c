@@ -42,7 +42,7 @@ void printSuperblocks()
   pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
 
   if (superblock.s_magic != EXT2_SUPER_MAGIC) {
-    fprintf(stderr, "Error reading filesystem.\n")
+    fprintf(stderr, "Error reading filesystem.\n");
   }
 
   blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
