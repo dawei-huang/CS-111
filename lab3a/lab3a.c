@@ -172,8 +172,10 @@ void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
 {
   __u16 directoryEntryLength = 0;
 
+  //for every directory entry the inode
   for (unsigned int i = 0; i < inode.i_size; i += directoryEntryLength) {
 
+    //reading one directory entry at a time
     struct ext2_dir_entry directoryEntry;
     pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(inode.i_block[0]) + i);
     directoryEntryLength = directoryEntry.rec_len;
@@ -212,7 +214,6 @@ void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirec
   pread(fileSystemDescriptor, entries, blockSize, BLOCK_OFFSET(inodeBlock));
 
   for (unsigned int i = 0; i < numberOfEntries; i++) {
-    // printf("Logical offset (1): %u\n", logicalOffset);
 
     if (entries[i] != 0) {
 
@@ -244,9 +245,11 @@ void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirec
 
 void printInodes()
 {
+  //for every groups
   for (int i = 0; i < numberOfGroups; i++) {
     __u32 inodeTable = groupDescriptors[i].bg_inode_table;
 
+    //for every inodes in group
     for (unsigned int inodeNumber = EXT2_ROOT_INO; inodeNumber < superblock.s_inodes_per_group; inodeNumber++) {
       struct ext2_inode inode;
       pread(fileSystemDescriptor, &inode, sizeof(struct ext2_inode), BLOCK_OFFSET(inodeTable) + (inodeNumber - 1) * sizeof(struct ext2_inode));
