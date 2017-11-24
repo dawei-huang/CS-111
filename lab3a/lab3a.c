@@ -113,8 +113,8 @@ void printFreeBlockEntries()
       for (int k = 0; k < 8; k++) {
         if ((buffer & compare) == 0) {
           /*
-	    1. BFREE
-	    2. number of the free block (decimal)
+          1. BFREE
+          2. number of the free block (decimal)
           */
           printf("BFREE,%u\n", (i * superblock.s_blocks_per_group) + (j * 8) + k + 1);
         }
@@ -139,8 +139,8 @@ void printFreeInodeEntries()
       for (int k = 0; k < 8; k++) {
         if ((buffer & compare) == 0) {
           /*
-	    1. IFREE
-	    2. number of the free I-node (decimal)
+          1. IFREE
+          2. number of the free I-node (decimal)
           */
           printf("IFREE,%u\n", (i * superblock.s_inodes_per_group) + (j * 8) + k + 1);
         }
@@ -203,139 +203,41 @@ void printDirectoryEntries(struct ext2_inode inode, int inodeNumber)
   }
 }
 
-void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirectionLevel, int* indirectInodeTable)
+void printIndirectBlockReferences(__u32 inodeBlock, int inodeNumber, int indirectionLevel, __u32 logicalOffset)
 {
-  //obtain indirectInodeTable
-  //int* indirectInodeTable3 = malloc(blockSize);
-  pread(fileSystemDescriptor, indirectInodeTable, blockSize, BLOCK_OFFSET(inodeBlock));
+  uint32_t numberOfEntries = blockSize / sizeof(uint32_t);
+  uint32_t entries[numberOfEntries];
+  pread(fileSystemDescriptor, entries, blockSize, BLOCK_OFFSET(inodeBlock));
 
-  if (indirectionLevel == 1) {
-    //iterating through every inode pointer in the table
-    for (unsigned int i = 0, len = blockSize / sizeof(int); i < len; i++) {
+  for (unsigned int i = 0; i < numberOfEntries; i++) {
 
-      __u16 directoryEntryLength = 0;
+    if (indirectionLevel == 1) {
+      logicalOffset = logicalOffset + i;
+    } else if (indirectionLevel == 2) {
+      logicalOffset = 12 + (256 * (i + 1));
+    } else if (indirectionLevel == 3) {
+      logicalOffset = 12 + 256 + (65536 * (i + 1));
+    }
 
-      if (indirectInodeTable[i] == 0) {
-	break;
+    // printf("Logical offset (1): %u\n", logicalOffset);
+
+    if (entries[i] != 0) {
+      printf("INDIRECT,%u,%u,%u,%u,%u\n",
+          inodeNumber,
+          indirectionLevel,
+          logicalOffset,
+          inodeBlock,
+          entries[i]);
+
+      if (indirectionLevel == 2) {
+        // printf("Logical offset (2): %u\n", logicalOffset);
+        printIndirectBlockReferences(entries[i], inodeNumber, indirectionLevel - 1, logicalOffset);
+      } else if (indirectionLevel == 3) {
+        // printf("Logical offset (3): %u\n", logicalOffset);
+        printIndirectBlockReferences(entries[i], inodeNumber, indirectionLevel - 1, logicalOffset);
       }
-    
-      if (indirectionLevel > 1) { 
-         int* indirectInodeTable2 = malloc(blockSize); 
-         printIndirectBlockReferences(indirectInodeTable[i], inodeNumber, indirectionLevel - 1, indirectInodeTable2); 
-       } 
-    
-      //each inode pointer has multiple directory entries
-      for (unsigned int j = 0; j < blockSize; j += directoryEntryLength) {
-      
-	struct ext2_dir_entry directoryEntry;
-	pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(indirectInodeTable[i]) + j);
-	directoryEntryLength = directoryEntry.rec_len;
-
-	if (directoryEntry.inode == 0) break;
-      
-	int logicalOffset = i + EXT2_NDIR_BLOCKS + indirectionLevel - 1;
-	int blockNumberOfIndirectBlock = inodeBlock;
-	int blockNumberOfReferencedBlock = inodeBlock + i + 1;
-
-	printf("INDIRECT,%i,%i,%u,%i,%i\n",
-	       inodeNumber,
-	       indirectionLevel,
-	       logicalOffset,
-	       blockNumberOfIndirectBlock,
-	       blockNumberOfReferencedBlock);
-      }    
     }
   }
-
-  /* if (indirectionLevel == 2) { */
-
-  /*   int* indirectInodeTable2 = malloc(blockSize); */
-    
-  /*   //iterating through every inode pointer in the table */
-  /*   for (unsigned int i = 0, len = blockSize / sizeof(int); i < len; i++) { */
-
-  /*     //if (indirectInodeTable[i] == 0) break; */
-
-  /*     pread(fileSystemDescriptor, indirectInodeTable2, blockSize, BLOCK_OFFSET(indirectInodeTable[i])); */
-
-  /*     for (unsigned int k = 0, len1 = blockSize / sizeof(int); k < len1; k++) { */
-
-  /* 	if (indirectInodeTable2[k] == 0) break; */
-	
-  /* 	__u16 directoryEntryLength = 0; */
-  /* 	//each inode pointer has multiple directory entries */
-  /* 	for (unsigned int j = 0; j < blockSize; j += directoryEntryLength) { */
-	  
-  /* 	  struct ext2_dir_entry directoryEntry; */
-  /* 	  pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(indirectInodeTable2[k]) + j); */
-  /* 	  directoryEntryLength = directoryEntry.rec_len; */
-
-  /* 	  //if (directoryEntry.inode == 0) break; */
-      
-  /* 	  int logicalOffset = i + EXT2_NDIR_BLOCKS + indirectionLevel - 1; */
-  /* 	  int blockNumberOfIndirectBlock = inodeBlock; */
-  /* 	  int blockNumberOfReferencedBlock = inodeBlock + i + 1; */
-
-  /* 	  printf("INDIRECT,%i,%i,%u,%i,%i\n", */
-  /* 		 inodeNumber, */
-  /* 		 indirectionLevel, */
-  /* 		 logicalOffset, */
-  /* 		 blockNumberOfIndirectBlock, */
-  /* 		 blockNumberOfReferencedBlock); */
-  /* 	}     */
-  /*     } */
-  /*   } */
-  /* } */
-
-  /* if (indirectionLevel == 3) { */
-  /*   int* indirectInodeTable2 = malloc(blockSize); */
-  /*   int* indirectInodeTable3 = malloc(blockSize); */
-    
-  /*   //iterating through every inode pointer in the table */
-  /*   for (unsigned int i = 0, len = blockSize / sizeof(int); i < len; i++) { */
-
-  /*     //if (indirectInodeTable[i] == 0) break; */
-
-  /*     pread(fileSystemDescriptor, indirectInodeTable2, blockSize, BLOCK_OFFSET(indirectInodeTable[i])); */
-
-  /*     for (unsigned int k = 0, len1 = blockSize / sizeof(int); k < len1; k++) { */
-
-  /* 	//if (indirectInodeTable2[k] == 0) break; */
-	
-  /* 	pread(fileSystemDescriptor, indirectInodeTable3, blockSize, BLOCK_OFFSET(indirectInodeTable2[k])); */
-
-  /* 	for (unsigned int m = 0, len2 = blockSize/sizeof(int); m < len2; m++) { */
-
-  /* 	  if (indirectInodeTable3[m] == 0) break; */
-	  
-  /* 	  __u16 directoryEntryLength = 0; */
-  /* 	  //each inode pointer has multiple directory entries */
-  /* 	  for (unsigned int j = 0; j < blockSize; j += directoryEntryLength) { */
-	  
-  /* 	    struct ext2_dir_entry directoryEntry; */
-  /* 	    pread(fileSystemDescriptor, &directoryEntry, sizeof(struct ext2_dir_entry), BLOCK_OFFSET(indirectInodeTable3[m]) + j); */
-  /* 	    directoryEntryLength = directoryEntry.rec_len; */
-
-  /* 	    //if (directoryEntry.inode == 0) break; */
-      
-  /* 	    int logicalOffset = i + EXT2_NDIR_BLOCKS + indirectionLevel - 1; */
-  /* 	    int blockNumberOfIndirectBlock = inodeBlock; */
-  /* 	    int blockNumberOfReferencedBlock = inodeBlock + i + 1; */
-
-  /* 	    printf("INDIRECT,%i,%i,%u,%i,%i\n", */
-  /* 		   inodeNumber, */
-  /* 		   indirectionLevel, */
-  /* 		   logicalOffset, */
-  /* 		   blockNumberOfIndirectBlock, */
-  /* 		   blockNumberOfReferencedBlock); */
-  /* 	  } */
-  /* 	} */
-  /*     } */
-  /*   } */
-  
-  /* } */
-
-  
 }
 
 void printInodes()
@@ -408,18 +310,14 @@ void printInodes()
         printDirectoryEntries(inode, inodeNumber);
       }
 
-      int* indirectInodeTable = malloc(blockSize);
       if (inode.i_block[EXT2_IND_BLOCK] != 0) {
-        printIndirectBlockReferences(inode.i_block[EXT2_IND_BLOCK], inodeNumber, 1, indirectInodeTable);
+        printIndirectBlockReferences(inode.i_block[EXT2_IND_BLOCK], inodeNumber, 1, 12);
       }
       if (inode.i_block[EXT2_DIND_BLOCK] != 0) {
-	fprintf(stderr, "this is a doubly indirect\n");
-	printIndirectBlockReferences(inode.i_block[EXT2_DIND_BLOCK], inodeNumber, 2, indirectInodeTable);
+        printIndirectBlockReferences(inode.i_block[EXT2_DIND_BLOCK], inodeNumber, 2, 12 + 256);
       }
-      
-       if (inode.i_block[EXT2_TIND_BLOCK] != 0) {
-	 fprintf(stderr, "this is a triply indirect\n");
-         printIndirectBlockReferences(inode.i_block[EXT2_TIND_BLOCK], inodeNumber, 3, indirectInodeTable);
+      if (inode.i_block[EXT2_TIND_BLOCK] != 0) {
+        printIndirectBlockReferences(inode.i_block[EXT2_TIND_BLOCK], inodeNumber, 3, 12 + 256 + 65536);
       }
     }
   }
