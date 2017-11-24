@@ -41,7 +41,9 @@ void printSuperblocks()
   // Superblock is always located at byte offset 1024
   pread(fileSystemDescriptor, &superblock, sizeof(struct ext2_super_block), SUPERBLOCK_OFFSET);
 
-  // error if superblock.s_magic != EXT2_SUPER_MAGIC
+  if (superblock.s_magic != EXT2_SUPER_MAGIC) {
+    fprintf(stderr, "Error reading filesystem.\n")
+  }
 
   blockSize = EXT2_MIN_BLOCK_SIZE << superblock.s_log_block_size;
 
@@ -87,7 +89,7 @@ void printGroups()
     */
     printf("GROUP,%u,%u,%u,%u,%u,%u,%u,%u\n",
         i,
-        superblock.s_blocks_per_group,
+        superblock.s_blocks_count,
         superblock.s_inodes_per_group,
         groupDescriptors[i].bg_free_blocks_count,
         groupDescriptors[i].bg_free_inodes_count,
