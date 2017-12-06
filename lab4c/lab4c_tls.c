@@ -1,0 +1,334 @@
+// NAME: Dawei Huang
+// EMAIL: daweihuang@g.ucla.edu
+// ID: 304792166
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <string.h>
+#include <stdbool.h>
+#include <mraa.h>
+#include <mraa/aio.h>
+#include <sys/time.h>
+#include <time.h>
+#include <math.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
+//TCP variables
+char* id = "";
+char* host = "";
+int port = -1;
+int socket_desc = -1;
+int new_socket_desc = -1;
+
+//socket address
+struct sockaddr_in server_address, client_address;
+
+//hostent address
+struct hostent *server;
+
+// temperature variables
+const int B = 4275; // value of thermistor
+char temp_scale = 'F';
+FILE *log_file = NULL;
+
+//time variables
+time_t local_timezone, begin, end;
+char time_str[16];
+struct tm* local_time_info;
+int time_period = 1;
+
+//program commands
+char command[64];
+bool generate_reports = true;
+
+// SSL data structures
+const SSL_METHOD *ssl_method;
+SSL_CTX *ctx;
+SSL *ssl;
+char ssl_write_buffer[64];
+
+
+//prints out shut down and log off
+void shut_down(FILE *log_file) {
+	
+  //fprintf(stdout, "%s SHUTDOWN\n", time_str);
+  if (log_file != NULL) {
+    fprintf(log_file, "%s SHUTDOWN\n", time_str);
+    fflush(log_file);
+  }
+	
+  exit(0);
+}
+
+//prints out the commands into the log files
+void print_command(const char* command) {
+	
+  //fprintf(stdout, "%s\n", command);
+  if (log_file != NULL) {
+    fprintf(log_file, "%s\n", command);
+    fflush(log_file);
+  }
+}
+
+double convert_volt_to_temp(int volt_temp) {
+  double temp = 1023.0 / ((double)volt_temp) - 1.0;
+  temp *= 100000.0;
+  double celsius = 1.0 / (log(temp/100000.0) / B + 1/298.15) - 273.15;
+
+  if (temp_scale == 'C')
+    return celsius;
+  return celsius * 9/5 + 32;
+}
+
+//attempt to find the period value in the commands
+bool parse_period() {
+  //int i = 0;
+  int len = strlen(command);
+  int prefix_length = strlen("PERIOD=");
+  if (prefix_length < len) {
+    char *prefix = (char*) malloc(prefix_length + 1);
+    strncpy(prefix, command, prefix_length);
+    prefix[prefix_length] = '\0';
+
+    if(strcmp(prefix, "PERIOD=") == 0) {
+      
+      time_period = atoi(command + len - 1);
+      
+      return true;
+    }
+    else {
+      return false;
+    }
+    
+  }
+
+  return false;
+}
+
+void process_commands() {
+	
+  if (strcmp(command, "OFF") == 0) {
+    print_command("OFF");
+    shut_down(log_file);
+  }
+  else if (strcmp(command, "STOP") == 0) {
+    generate_reports = false;
+    print_command(command);
+  }
+  else if (strcmp(command, "START") == 0) {
+    generate_reports = true;
+    print_command(command);
+  }
+  else if (strcmp(command, "SCALE=F") == 0) {
+    temp_scale='F';
+    print_command(command);
+  }
+  else if (strcmp(command, "SCALE=C") == 0) {
+    temp_scale='C';
+    print_command(command);
+  }
+  else {
+    fprintf(stderr, "%s\n", command);
+    if (strlen(command) < 8) {
+      print_command("Invalid commands");
+    }
+    else {
+      if (parse_period() == false) {
+	
+	print_command("Invalid commands"); 
+      }
+      else {
+	print_command(command);
+      }
+    }
+  }
+}
+
+
+
+//establishing sockets
+void establish_ssl_sockets(struct sockaddr_in *s_a) {
+  //establish socket descriptor
+  socket_desc = socket(AF_INET , SOCK_STREAM , 0);
+  if (socket_desc == -1) {
+    fprintf(stderr, "Cannot create socket descriptor\n");
+    exit(1);
+  }
+	
+  //get server of localhost
+  if ((server = gethostbyname(host)) == NULL) {
+    fprintf(stderr, "Cannot find host\n");
+    exit(1);
+  }
+	
+  //clean out server_address
+  memset((void*) s_a, 0, sizeof(s_a));
+  //prepare sockaddr_in structure
+  s_a->sin_family = AF_INET;
+  memcpy((char *)&s_a->sin_addr.s_addr, (char *)server->h_addr, server->h_length);
+  s_a->sin_port = htons(port);
+
+  if (connect(socket_desc, (struct sockaddr*) s_a, sizeof(*s_a)) == -1) {
+    perror("Cannot connect to server.\n");
+    exit(1);
+  }
+
+  SSL_set_fd(ssl, socket_desc);
+  if (SSL_connect(ssl) != 1) {
+    perror("Cannot connect to SSL handshake with server\n");
+    exit(1);
+  }
+
+  memset(ssl_write_buffer, 0, 64);
+  sprintf(ssl_write_buffer, "ID=%s\n", id);
+  SSL_write(ssl, ssl_write_buffer, strlen(ssl_write_buffer));
+  
+}
+
+//process program's arguments
+void process_args(int argc, char** argv) {
+	
+  int opt;
+  const char* SHORT_OPTS = "i:h:l";
+  static struct option LONG_OPTS[] = {
+    {"id", required_argument, 0, 'i'},
+    {"host", required_argument, 0, 'h'},
+    {"log", required_argument, 0, 'l'},
+    {NULL, 0, NULL, 0}
+  };
+
+  while ((opt = getopt_long(argc, argv, SHORT_OPTS, LONG_OPTS, NULL)) != -1) {		
+    if (opt == 'i') {
+      id = optarg;
+    }
+    else if (opt == 'h') {
+      host = optarg;
+    }
+    else if (opt == 'l') {
+      log_file = fopen(optarg, "w");
+    }
+    else {
+      fprintf(stderr, "304-792-166: unrecognized argument: %c \n", opt);
+      exit(1);
+    }
+  }
+}
+
+//get local time and converts them into strings
+void get_local_time(time_t *l_tz, struct tm* l_t_i, char * t_str) {
+  time(l_tz);
+  l_t_i = localtime(l_tz);
+  strftime(t_str, 10, "%H:%M:%S", l_t_i);
+}
+
+//print out the time_string and saves the log file
+void print_local_time (double degrees) {
+  memset(ssl_write_buffer, 0, 64);
+  sprintf(ssl_write_buffer, "%s %.1f\n", time_str, degrees);
+  SSL_write(ssl, ssl_write_buffer, strlen(ssl_write_buffer));
+  if (log_file != NULL) {
+    fprintf(log_file, "%s %.1f\n", time_str, degrees);
+    fflush(log_file);
+  }
+}
+
+void process_ssl() {
+  OpenSSL_add_all_algorithms();
+  SSL_load_error_strings();
+  if (SSL_library_init() == -1) {
+    fprintf(stderr, "Cannot create OpenSSL library\n");
+    exit(1);
+  }
+  
+  ssl_method = SSLv23_client_method();
+  if ((ctx = SSL_CTX_new(ssl_method)) == 0) {
+    perror("Cannot create SSL context\n")
+    exit(1);
+  }
+
+  ssl = SSL_new(ctx);
+}
+
+int main(int argc, char** argv) {
+
+  if (argc <= 1) {
+    perror("Not enough arguments.\n");
+    exit(1);
+  }
+  
+  process_args(argc, argv);
+
+  port = atoi(argv[argc - 1]);
+
+  process_ssl();
+  
+  establish_ssl_sockets(&server_address);
+
+  // initialized temperature sensor at Analog Input 0
+  mraa_aio_context temp_sensor;
+  temp_sensor = mraa_aio_init(1);
+  double temp_in_degrees;
+  int volt_temp = 0;
+
+  // initialized button at Digital Input 3
+  mraa_gpio_context button;
+  button = mraa_gpio_init(73);
+  mraa_gpio_dir(button, MRAA_GPIO_IN);
+
+  struct pollfd pfds[1];
+  pfds[0].fd = socket_desc; 
+  pfds[0].events = POLLIN | POLLHUP | POLLERR;
+	
+  while (true) {
+	        
+    volt_temp = mraa_aio_read(temp_sensor);
+    temp_in_degrees = convert_volt_to_temp(volt_temp);
+			
+    get_local_time(&local_timezone, local_time_info, time_str);
+    print_local_time(temp_in_degrees);
+    time(&begin); 
+    time(&end);
+		
+    int elapsed_time = difftime(end, begin);
+    while (elapsed_time < time_period) {
+			
+      if (mraa_gpio_read(button)) {
+	get_local_time(&local_timezone, local_time_info, time_str);
+	print_local_time(temp_in_degrees);	
+	shut_down(log_file);
+      }
+
+      int ret = poll(pfds, 1, 0);
+      if (ret == -1) {
+	perror("polling error\n");
+	exit(1);
+      }
+
+      if (pfds[0].revents & POLLIN) {
+	memset(command, 0, 63);
+	int read_value = SSL_read(ssl, command, 63);
+	command[read_value - 1] = '\0';
+	process_commands(command);	
+      }
+
+      if (generate_reports == true) {
+	time(&end);
+	elapsed_time = difftime(end, begin);
+      }
+
+    }
+  }
+
+  return 0;
+}
+

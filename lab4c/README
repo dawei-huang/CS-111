@@ -1,0 +1,9 @@
+//NAME: Dawei Huang
+//EMAIL: daweihuang@g.ucla.edu
+//ID: 304792166
+
+lab4b.c - source code of a temperature sensor using the lmraa library. Also accepts commands to adjust its option settings such as temperature and time and log file.
+
+README - notepad containing information about the lab4b files.
+
+Makefile - used to make, make check, make clean and make dist. Help the programmer easily tar, remove, or build lab4b.c.
